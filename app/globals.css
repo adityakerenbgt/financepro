@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Base reset
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0f172a;
+  color: #f1f5f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ============================================================
+   Date / Month picker icon — WCAG visible in both modes
+   ============================================================ */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+  /* Dark mode: make black icon white */
+  filter: invert(0.75) brightness(1.3);
+  cursor: pointer;
+  opacity: 0.9;
+  border-radius: 2px;
+}
+html.light input[type="date"]::-webkit-calendar-picker-indicator,
+html.light input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.55;
+}
+
+/* ============================================================
+   Remove number input spinners (↑↓ arrows)
+   ============================================================ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
+
+/* ============================================================
+   Light mode — applied when <html class="light">
+   ============================================================ */
+html.light body        { background: #f1f5f9; color: #0f172a; }
+html.light aside       { background-color: #ffffff; border-color: #e2e8f0; }
+
+/* Backgrounds */
+html.light .bg-slate-950 { background-color: #e2e8f0; }
+html.light .bg-slate-900 { background-color: #f8fafc; }
+html.light .bg-slate-800 { background-color: #ffffff; }
+html.light .bg-slate-700 { background-color: #f1f5f9; }
+
+/* Borders */
+html.light .border-slate-800 { border-color: #e2e8f0; }
+html.light .border-slate-700 { border-color: #cbd5e1; }
+
+/* Text */
+html.light .text-white     { color: #0f172a; }
+html.light .text-slate-200 { color: #334155; }
+html.light .text-slate-300 { color: #475569; }
+html.light .text-slate-400 { color: #64748b; }
+html.light .text-slate-500 { color: #94a3b8; }
+
+/* Nav active state */
+html.light .bg-blue-600 { background-color: #2563eb; }
+
+/* Input fields */
+html.light input[type="text"],
+html.light input[type="number"],
+html.light input[type="date"],
+html.light input[type="month"],
+html.light input[type="email"],
+html.light select,
+html.light textarea {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Light mode date icon override */
+html.light input[type="date"]::-webkit-calendar-picker-indicator,
+html.light input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.5;
+}
+
+/* Recharts in light mode */
+html.light .recharts-cartesian-grid line { stroke: #e2e8f0; }
+html.light .recharts-text { fill: #64748b; }
+
+/* ============================================================
+   Component classes
+   ============================================================ */
+@layer components {
+  .card {
+    @apply bg-slate-800 rounded-xl border border-slate-700 p-6;
+  }
+  .card-hover {
+    @apply bg-slate-800 rounded-xl border border-slate-700 p-6
+           transition-all duration-200
+           hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5;
+  }
+  .kpi-card {
+    @apply bg-slate-800 rounded-xl border border-slate-700 p-6
+           transition-all duration-200
+           hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5
+           flex flex-col gap-2;
+  }
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold
+           px-4 py-2 rounded-lg transition-colors
+           focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-800
+           disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-slate-100
+           font-semibold px-4 py-2 rounded-lg transition-colors
+           focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-800;
+  }
+  .input-field {
+    @apply bg-slate-900 border border-slate-700 rounded-lg
+           px-3 py-2 text-slate-100
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           placeholder:text-slate-500;
+  }
+  /* WCAG AA: form labels — slate-300 gives 9.3:1 on slate-800 */
+  .form-label {
+    @apply block text-xs font-semibold mb-1.5;
+    color: #cbd5e1; /* slate-300 */
+  }
+  .badge-success {
+    @apply bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .badge-warning {
+    @apply bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .badge-danger {
+    @apply bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+}
+
+/* ============================================================
+   Toast animation
+   ============================================================ */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out forwards;
+}
+
+/* ============================================================
+   Smooth theme transitions
+   ============================================================ */
+body, aside, .card, .card-hover, .kpi-card {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+/* ============================================================
+   WCAG: Focus visible for keyboard navigation
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}

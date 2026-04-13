@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  password     String
+  role         UserRole      @default(USER)
+  displayName  String?
+  createdAt    DateTime      @default(now())
+  lastLogin    DateTime?
+  profile      UserProfile?
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+  savings      SavingsInvestment[]
+  debts        Debt[]
+  assets       Asset[]
+  budgets      Budget[]
+  goals        Goal[]
+  transfers    Transfer[]
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model UserProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String   @default("User")
+  currency      String   @default("IDR")
+  startDate     DateTime @default(now())
+  targetSavings Float?
+  targetExpense Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         String        @default("expense")
+  icon         String?
+  createdAt    DateTime      @default(now())
+  budgets      Budget[]
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Account {
+  id            String              @id @default(cuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          String              @default("bank")
+  balance       Float               @default(0)
+  isDebt        Boolean             @default(false)
+  debtId        String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  adjustments   Json                @default("[]")
+  savings       SavingsInvestment[]
+  transactions  Transaction[]
+  transfersFrom Transfer[]          @relation("TransferFrom")
+  transfersTo   Transfer[]          @relation("TransferTo")
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  txId        String          @unique
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime
+  categoryId  String
+  description String
+  accountId   String
+  type        TransactionType
+  amount      Float
+  note        String?
+  month       String
+  week        String
+  createdAt   DateTime        @default(now())
+  account     Account         @relation(fields: [accountId], references: [id])
+  category    Category        @relation(fields: [categoryId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+  @@index([month])
+  @@index([week])
+  @@index([type])
+  @@index([categoryId])
+}
+
+model SavingsInvestment {
+  id              String      @id @default(cuid())
+  invId           String      @unique
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime
+  assetType       String
+  instrumentName  String
+  transactionType SavingsType
+  nominal         Float
+  pricePerUnit    Float?
+  units           Float?
+  accountId       String
+  notes           String?
+  createdAt       DateTime    @default(now())
+  account         Account     @relation(fields: [accountId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+  @@index([instrumentName])
+  @@index([transactionType])
+}
+
+model Debt {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debtType         DebtType
+  debtName         String
+  limitOrPrincipal Float
+  interestRate     Float      @default(0)
+  tenor            Int?
+  monthlyPayment   Float?
+  startDate        DateTime?
+  status           DebtStatus @default(Active)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  isPiutang        Boolean    @default(false)
+
+  @@unique([userId, debtName])
+  @@index([userId])
+  @@index([debtType])
+  @@index([status])
+}
+
+model Asset {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetType      String
+  instrumentName String
+  initialCapital Float     @default(0)
+  startDate      DateTime?
+  currentValue   Float     @default(0)
+  lastUpdated    DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, instrumentName])
+  @@index([userId])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month      String
+  categoryId String
+  amount     Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, month, categoryId])
+  @@index([userId])
+  @@index([month])
+}
+
+model Goal {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalName     String
+  targetAmount Float
+  targetDate   DateTime
+  status       GoalStatus @default(OnTrack)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, goalName])
+  @@index([userId])
+}
+
+model Transfer {
+  id            String   @id @default(cuid())
+  txId          String   @unique
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime
+  fromAccountId String
+  toAccountId   String
+  amount        Float
+  notes         String?
+  createdAt     DateTime @default(now())
+  fromAccount   Account  @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  toAccount     Account  @relation("TransferTo", fields: [toAccountId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+}
+
+enum TransactionType {
+  Pemasukan
+  Pengeluaran
+}
+
+enum SavingsType {
+  Buy
+  Sell
+  Withdraw
+  Goals
+}
+
+enum DebtType {
+  Revolving
+  Fixed
+}
+
+enum DebtStatus {
+  Active
+  Lunas
+  OverLimit
+}
+
+enum GoalStatus {
+  OnTrack
+  Tercapai
+  Gagal
+}
