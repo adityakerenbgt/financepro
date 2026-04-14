@@ -6,6 +6,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   username: string | null;
   role: string | null;
+  plan: 'FREE' | 'PRO' | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -17,9 +18,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [plan, setPlan] = useState<'FREE' | 'PRO' | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check auth status on mount
   useEffect(() => {
     const verifyAuth = async () => {
       try {
@@ -29,14 +30,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(data.authenticated);
           setUsername(data.username || null);
           setRole(data.role || null);
+          setPlan(data.plan || null);
         }
-      } catch (error) {
+      } catch {
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }
     };
-
     verifyAuth();
   }, []);
 
@@ -46,16 +47,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
-
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || 'Login gagal');
     }
-
     const data = await res.json();
     setIsAuthenticated(true);
     setUsername(data.username);
     setRole(data.role || null);
+    setPlan(data.plan || null);
   };
 
   const logout = async () => {
@@ -63,10 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
     setUsername(null);
     setRole(null);
+    setPlan(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, role, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, username, role, plan, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -74,8 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth harus digunakan dalam AuthProvider');
-  }
+  if (!context) throw new Error('useAuth harus digunakan dalam AuthProvider');
   return context;
 }

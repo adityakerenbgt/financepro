@@ -3,13 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, RefreshCw, X, Target, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '../../providers';
+import { useAuth } from '../../auth-context';
+import ProGate from '../../components/ProGate';
 import type { GoalSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
 
 function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
 export default function GoalsPage() {
+  const { plan, role } = useAuth();
   const [goals, setGoals] = useState<GoalSummary[]>([]);
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Goals" />;
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<GoalSummary | null>(null);

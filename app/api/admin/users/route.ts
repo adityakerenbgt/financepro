@@ -3,6 +3,11 @@ import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
+const USER_SELECT = {
+  id: true, username: true, displayName: true,
+  role: true, plan: true, planExpiresAt: true, createdAt: true,
+} as const;
+
 function requireAdmin(req: NextRequest) {
   const user = getUserFromRequest(req);
   if (!user) return null;
@@ -14,11 +19,7 @@ export async function GET(req: NextRequest) {
   try {
     const admin = requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
-    const users = await prisma.user.findMany({
-      select: { id: true, username: true, displayName: true, role: true, createdAt: true },
-      orderBy: { createdAt: 'asc' },
-    });
+    const users = await prisma.user.findMany({ select: USER_SELECT, orderBy: { createdAt: 'asc' } });
     return NextResponse.json(users);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: { username, displayName: displayName || null, password: hashedPassword, role: role === 'ADMIN' ? 'ADMIN' : 'USER' },
-      select: { id: true, username: true, displayName: true, role: true, createdAt: true },
+      select: USER_SELECT,
     });
     return NextResponse.json(user, { status: 201 });
   } catch (error: any) {
@@ -54,19 +55,18 @@ export async function PATCH(req: NextRequest) {
     const admin = requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { id, displayName, password, role } = await req.json();
+    const body = await req.json();
+    const { id, displayName, password, role, plan, planExpiresAt } = body;
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
     const updateData: any = {};
     if (displayName !== undefined) updateData.displayName = displayName;
     if (role !== undefined) updateData.role = role === 'ADMIN' ? 'ADMIN' : 'USER';
+    if (plan !== undefined) updateData.plan = plan === 'PRO' ? 'PRO' : 'FREE';
+    if (planExpiresAt !== undefined) updateData.planExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null;
     if (password) updateData.password = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: { id: true, username: true, displayName: true, role: true, createdAt: true },
-    });
+    const user = await prisma.user.update({ where: { id }, data: updateData, select: USER_SELECT });
     return NextResponse.json(user);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

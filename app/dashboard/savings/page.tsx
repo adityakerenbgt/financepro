@@ -5,6 +5,8 @@ import { Plus, RefreshCw, X, Pencil, Trash2, Filter } from 'lucide-react';
 import { useToast } from '../../providers';
 import { useSetupData } from '../../hooks';
 import { RpInput } from '../../components/RpInput';
+import { useAuth } from '../../auth-context';
+import ProGate from '../../components/ProGate';
 
 function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
@@ -25,6 +27,7 @@ interface SavingsItem {
 }
 
 export default function SavingsPage() {
+  const { plan, role } = useAuth();
   const [items, setItems] = useState<SavingsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -33,6 +36,8 @@ export default function SavingsPage() {
   const [assetTypeFilter, setAssetTypeFilter] = useState('');
   const [txTypeFilter, setTxTypeFilter] = useState('');
   const { toast } = useToast();
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Nabung & Investasi" />;
 
   const fetch_ = useCallback(async () => {
     setLoading(true);

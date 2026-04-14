@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   BarChart3, Wallet, TrendingUp, CreditCard, PieChart,
   Target, CalendarDays, Settings, Menu, X, Landmark,
-  Sun, Moon, ChevronLeft, ChevronRight, Building2, LogOut, ShieldCheck,
+  Sun, Moon, ChevronLeft, ChevronRight, Building2, LogOut, ShieldCheck, Sparkles,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../providers';
@@ -29,8 +29,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { logout, role } = useAuth();
+  const { logout, role, plan } = useAuth();
   const navItems = allNavItems.filter(item => !item.adminOnly || role === 'ADMIN');
+  const isProUser = role === 'ADMIN' || plan === 'PRO';
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [userName, setUserName] = useState('User');
@@ -165,14 +166,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {!collapsed && <span>Collapse</span>}
           </button>
 
+          {/* Upgrade banner for FREE users */}
+          {!isProUser && !collapsed && (
+            <Link
+              href="/dashboard/upgrade"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 hover:border-yellow-500/40 transition-colors"
+            >
+              <Sparkles className="w-4 h-4 text-yellow-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-yellow-400 font-semibold">Upgrade ke PRO</p>
+                <p className="text-xs text-slate-500 truncate">Rp 29.000/bln</p>
+              </div>
+            </Link>
+          )}
+          {!isProUser && collapsed && (
+            <Link
+              href="/dashboard/upgrade"
+              title="Upgrade ke PRO"
+              className="flex items-center justify-center px-3 py-2 rounded-lg text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+            </Link>
+          )}
+
           {/* User avatar */}
           <div className={`flex items-center gap-3 px-3 py-2 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {initials}
+            <div className="relative">
+              <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {initials}
+              </div>
+              {isProUser && !collapsed && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-slate-900" title="PRO" />
+              )}
             </div>
             {!collapsed && (
-              <div className="min-w-0">
-                <p className="text-sm text-white font-medium truncate">{userName}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm text-white font-medium truncate">{userName}</p>
+                  {isProUser ? (
+                    <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1 rounded font-bold">PRO</span>
+                  ) : (
+                    <span className="text-xs bg-slate-700 text-slate-400 border border-slate-600 px-1 rounded">FREE</span>
+                  )}
+                </div>
                 <button onClick={handleLogout} className="text-xs text-slate-500 hover:text-red-400 transition-colors">
                   Logout
                 </button>

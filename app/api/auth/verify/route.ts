@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; username: string; role: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; username: string; role: string; plan: string };
 
-    return NextResponse.json({ authenticated: true, username: decoded.username, role: decoded.role }, { status: 200 });
+    return NextResponse.json({ authenticated: true, username: decoded.username, role: decoded.role, plan: decoded.plan }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }

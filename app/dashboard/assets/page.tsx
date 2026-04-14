@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, RefreshCw, X, TrendingUp, TrendingDown, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '../../providers';
+import { useAuth } from '../../auth-context';
+import ProGate from '../../components/ProGate';
 import type { AssetSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
 
@@ -11,7 +13,10 @@ function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')
 const ASSET_TYPES = ['Investasi', 'Dana Darurat', 'Properti', 'Kendaraan', 'Emas', 'Crypto', 'Lainnya'];
 
 export default function AssetsPage() {
+  const { plan, role } = useAuth();
   const { toast } = useToast();
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Aset" />;
   const [assets, setAssets] = useState<AssetSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

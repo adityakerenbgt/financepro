@@ -8,28 +8,36 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  username     String        @unique
-  password     String
-  role         UserRole      @default(USER)
-  displayName  String?
-  createdAt    DateTime      @default(now())
-  lastLogin    DateTime?
-  profile      UserProfile?
-  accounts     Account[]
-  categories   Category[]
-  transactions Transaction[]
-  savings      SavingsInvestment[]
-  debts        Debt[]
-  assets       Asset[]
-  budgets      Budget[]
-  goals        Goal[]
-  transfers    Transfer[]
+  id             String        @id @default(cuid())
+  username       String        @unique
+  email          String?       @unique
+  password       String
+  role           UserRole      @default(USER)
+  plan           UserPlan      @default(FREE)
+  planExpiresAt  DateTime?
+  displayName    String?
+  createdAt      DateTime      @default(now())
+  lastLogin      DateTime?
+  profile        UserProfile?
+  accounts       Account[]
+  categories     Category[]
+  transactions   Transaction[]
+  savings        SavingsInvestment[]
+  debts          Debt[]
+  assets         Asset[]
+  budgets        Budget[]
+  goals          Goal[]
+  transfers      Transfer[]
 }
 
 enum UserRole {
   ADMIN
   USER
+}
+
+enum UserPlan {
+  FREE
+  PRO
 }
 
 model UserProfile {

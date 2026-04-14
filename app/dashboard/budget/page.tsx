@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, RefreshCw, X, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '../../providers';
+import { useAuth } from '../../auth-context';
+import ProGate from '../../components/ProGate';
 import { useSetupData } from '../../hooks';
 import type { BudgetSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
@@ -12,7 +14,10 @@ function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')
 type BudgetRow = BudgetSummary;
 
 export default function BudgetPage() {
+  const { plan, role } = useAuth();
   const [budgets, setBudgets] = useState<BudgetRow[]>([]);
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Budget" />;
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<BudgetRow | null>(null);

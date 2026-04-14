@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { CalendarDays, RefreshCw } from 'lucide-react';
 import { getISOWeek, getYear } from 'date-fns';
+import { useAuth } from '../../auth-context';
+import ProGate from '../../components/ProGate';
 
 function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
@@ -24,7 +26,10 @@ function dateToWeekString(dateStr: string): string {
 }
 
 export default function ReportsPage() {
+  const { plan, role } = useAuth();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Laporan Lengkap" />;
 
   // Daily
   const [dailyDate, setDailyDate] = useState('');

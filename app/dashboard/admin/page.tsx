@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/auth-context';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Trash2, KeyRound, ShieldCheck, User, Pencil } from 'lucide-react';
+import { UserPlus, Trash2, KeyRound, ShieldCheck, User, Pencil, Sparkles } from 'lucide-react';
 
 interface AppUser {
   id: string;
   username: string;
   displayName: string | null;
   role: 'ADMIN' | 'USER';
+  plan: 'FREE' | 'PRO';
+  planExpiresAt: string | null;
   createdAt: string;
 }
 
@@ -27,7 +29,7 @@ export default function AdminPage() {
 
   // Edit user form
   const [editUser, setEditUser] = useState<AppUser | null>(null);
-  const [editForm, setEditForm] = useState({ displayName: '', password: '', role: 'USER' });
+  const [editForm, setEditForm] = useState({ displayName: '', password: '', role: 'USER', plan: 'FREE', planExpiresAt: '' });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -102,8 +104,34 @@ export default function AdminPage() {
 
   const openEdit = (u: AppUser) => {
     setEditUser(u);
-    setEditForm({ displayName: u.displayName || '', password: '', role: u.role });
+    setEditForm({
+      displayName: u.displayName || '',
+      password: '',
+      role: u.role,
+      plan: u.plan,
+      planExpiresAt: u.planExpiresAt ? u.planExpiresAt.slice(0, 10) : '',
+    });
     setEditError('');
+  };
+
+  const handleSetPro = async (u: AppUser) => {
+    const expiry = new Date();
+    expiry.setMonth(expiry.getMonth() + 1);
+    await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, plan: 'PRO', planExpiresAt: expiry.toISOString() }),
+    });
+    fetchUsers();
+  };
+
+  const handleSetFree = async (u: AppUser) => {
+    await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, plan: 'FREE', planExpiresAt: null }),
+    });
+    fetchUsers();
   };
 
   if (loading || role !== 'ADMIN') return null;
@@ -231,6 +259,28 @@ export default function AdminPage() {
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Plan</label>
+                <select
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  value={editForm.plan}
+                  onChange={e => setEditForm(f => ({ ...f, plan: e.target.value }))}
+                >
+                  <option value="FREE">Free</option>
+                  <option value="PRO">PRO</option>
+                </select>
+              </div>
+              {editForm.plan === 'PRO' && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Aktif sampai</label>
+                  <input
+                    type="date"
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                    value={editForm.planExpiresAt}
+                    onChange={e => setEditForm(f => ({ ...f, planExpiresAt: e.target.value }))}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex gap-3 pt-2">
               <button
@@ -262,6 +312,7 @@ export default function AdminPage() {
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Username</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Nama</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Role</th>
+                <th className="text-left px-4 py-3 text-slate-400 font-medium">Plan</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Dibuat</th>
                 <th className="text-right px-4 py-3 text-slate-400 font-medium">Aksi</th>
               </tr>
@@ -282,11 +333,46 @@ export default function AdminPage() {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    {u.plan === 'PRO' ? (
+                      <div>
+                        <span className="inline-flex items-center gap-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full text-xs font-bold">
+                          <Sparkles className="w-3 h-3" /> PRO
+                        </span>
+                        {u.planExpiresAt && (
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            s/d {new Date(u.planExpiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 bg-slate-700 text-slate-400 border border-slate-600 px-2 py-0.5 rounded-full text-xs font-medium">
+                        FREE
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-slate-400">
                     {new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {u.plan === 'FREE' ? (
+                        <button
+                          onClick={() => handleSetPro(u)}
+                          className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/20 rounded-lg transition-colors font-medium"
+                          title="Set PRO 1 bulan"
+                        >
+                          Set PRO
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleSetFree(u)}
+                          className="text-xs px-2 py-1 bg-slate-700 text-slate-400 border border-slate-600 hover:bg-slate-600 rounded-lg transition-colors"
+                          title="Revoke PRO"
+                        >
+                          Revoke
+                        </button>
+                      )}
                       <button
                         onClick={() => openEdit(u)}
                         className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"

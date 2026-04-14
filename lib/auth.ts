@@ -7,6 +7,7 @@ export interface AuthUser {
   userId: string;
   username: string;
   role: 'ADMIN' | 'USER';
+  plan: 'FREE' | 'PRO';
 }
 
 export function getUserFromRequest(req: NextRequest): AuthUser | null {
@@ -30,4 +31,8 @@ export function requireAdmin(req: NextRequest): AuthUser {
   const user = requireAuth(req);
   if (user.role !== 'ADMIN') throw new Error('Forbidden: Admin only');
   return user;
+}
+
+export function isPro(user: AuthUser): boolean {
+  return user.role === 'ADMIN' || user.plan === 'PRO';
 }

@@ -5,12 +5,15 @@ import { Plus, RefreshCw, X, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '../../providers';
 import type { DebtSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
+import { useAuth } from '../../auth-context';
+import ProGate from '../../components/ProGate';
 
 function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
 interface DebtRow extends DebtSummary {}
 
 export default function DebtsPage() {
+  const { plan, role } = useAuth();
   const [debts, setDebts] = useState<DebtRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'hutang' | 'piutang'>('hutang');
@@ -23,6 +26,8 @@ export default function DebtsPage() {
   const [paymentIsPiutang, setPaymentIsPiutang] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
   const { toast } = useToast();
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Hutang & Piutang" />;
 
   const fetch_ = useCallback(async () => {
     setLoading(true);

@@ -96,8 +96,11 @@ export default function LoginPage() {
             {loading ? 'Sedang login...' : 'Login'}
           </button>
 
-          <p className="text-center text-xs text-slate-400">
-            Demo: virgiangalang • aBpCBx8s7XG8fOtG
+          <p className="text-center text-slate-400 text-sm">
+            Belum punya akun?{' '}
+            <a href="/register" className="text-blue-400 hover:underline font-medium">
+              Daftar gratis
+            </a>
           </p>
         </form>
 

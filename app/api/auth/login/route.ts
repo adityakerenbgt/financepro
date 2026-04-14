@@ -30,9 +30,8 @@ export async function POST(req: NextRequest) {
       data: { lastLogin: new Date() },
     });
 
-    // Include userId and role in JWT
     const token = jwt.sign(
-      { userId: user.id, username: user.username, role: user.role },
+      { userId: user.id, username: user.username, role: user.role, plan: user.plan },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -41,6 +40,7 @@ export async function POST(req: NextRequest) {
       success: true,
       username: user.username,
       role: user.role,
+      plan: user.plan,
     }, { status: 200 });
 
     response.cookies.set('auth-token', token, {
