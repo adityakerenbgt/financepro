@@ -175,3 +175,39 @@ body, aside, .card, .card-hover, .kpi-card {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
+
+/* ============================================================
+   Landing page (/)
+   ============================================================ */
+html { scroll-behavior: smooth; }
+
+.lp-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 80%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 80%);
+}
+
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+@keyframes lp-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes lp-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.lp-float { animation: lp-float 6s ease-in-out infinite; }
+.lp-float-slow { animation: lp-float 8s ease-in-out infinite 1s; }
+.lp-rise { animation: lp-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.lp-bar { transform-origin: bottom; animation: lp-grow 1s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .lp-float, .lp-float-slow, .lp-rise, .lp-bar { animation: none; }
+}

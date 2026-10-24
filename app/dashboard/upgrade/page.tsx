@@ -4,26 +4,7 @@ import { useAuth } from '@/app/auth-context';
 import { Check, Sparkles, Zap } from 'lucide-react';
 import Link from 'next/link';
 
-const freeFeatures = [
-  'Catat transaksi (unlimited)',
-  'Dashboard bulan berjalan',
-  '1 rekening',
-  'Laporan bulanan sederhana',
-  'Telegram bot (add & view transaksi)',
-];
-
-const proFeatures = [
-  'Semua fitur FREE',
-  'Rekening tak terbatas',
-  'Laporan harian, mingguan, bulanan lengkap',
-  'Nabung & Investasi tracker',
-  'Hutang & Piutang management',
-  'Aset portfolio',
-  'Goals & target keuangan',
-  'Budget planning & monitoring',
-  'History tak terbatas',
-  'Semua fitur Telegram bot',
-];
+import { FREE_FEATURES as freeFeatures, PRO_FEATURES as proFeatures, PRICING } from '@/lib/plans';
 
 export default function UpgradePage() {
   const { plan, role } = useAuth();
@@ -83,11 +64,11 @@ export default function UpgradePage() {
             <h2 className="text-lg font-bold text-white">PRO</h2>
             <div className="mt-2 flex items-end gap-3">
               <div>
-                <span className="text-3xl font-bold text-white">Rp 29.000</span>
+                <span className="text-3xl font-bold text-white">Rp {PRICING.proMonthly.toLocaleString('id-ID')}</span>
                 <span className="text-slate-400 ml-1">/ bulan</span>
               </div>
               <div className="text-sm text-slate-400 mb-1">
-                atau <span className="text-yellow-400 font-semibold">Rp 249.000</span> / tahun
+                atau <span className="text-yellow-400 font-semibold">Rp {PRICING.proYearly.toLocaleString('id-ID')}</span> / tahun
               </div>
             </div>
           </div>
