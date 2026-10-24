@@ -10,12 +10,11 @@ import {
   ResponsiveContainer, Legend, Cell,
 } from 'recharts';
 import type { DashboardData } from '@/types';
+import { formatMoney as formatRp, formatCompactMoney } from '@/lib/currency';
+import { useLang } from '@/app/i18n';
+import { translateTip } from '@/lib/labels';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];
-
-function formatRp(n: number) {
-  return `Rp${Math.round(n).toLocaleString('id-ID')}`;
-}
 
 // ---- Custom Tooltip untuk semua chart ----
 function ChartTooltip({ active, payload, label }: any) {
@@ -35,6 +34,7 @@ function ChartTooltip({ active, payload, label }: any) {
 }
 
 export default function DashboardPage() {
+  const { t, lang } = useLang();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -67,7 +67,7 @@ export default function DashboardPage() {
   }
 
   if (!data) {
-    return <div className="text-center text-slate-400 py-20">Gagal memuat data dashboard.</div>;
+    return <div className="text-center text-slate-400 py-20">{t('Gagal memuat data dashboard.', 'Failed to load dashboard data.')}</div>;
   }
 
   const { kpi, moneyFlow, spendingOverview, expensesSummary, investmentSummary, goalsProgress, tips } = data;
@@ -78,7 +78,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-sm text-slate-400">Ringkasan keuangan Anda</p>
+          <p className="text-sm text-slate-400">{t('Ringkasan keuangan Anda', 'Your financial summary')}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input
@@ -86,7 +86,7 @@ export default function DashboardPage() {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className="input-field text-sm"
-            placeholder="Dari"
+            placeholder={t('Dari', 'From')}
           />
           <span className="text-slate-500">—</span>
           <input
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className="input-field text-sm"
-            placeholder="Sampai"
+            placeholder={t('Sampai', 'To')}
           />
           <button onClick={fetchData} className="btn-primary text-sm px-3 py-2">
             <RefreshCw className="w-4 h-4" />
@@ -104,12 +104,12 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <KPICard icon={TrendingUp} label="Total Pemasukan" value={formatRp(kpi.totalIncome)} color="emerald" />
-        <KPICard icon={TrendingDown} label="Total Pengeluaran" value={formatRp(kpi.totalExpense)} color="red" />
-        <KPICard icon={DollarSign} label="Total Tabungan" value={formatRp(kpi.totalSavings)} color="blue" />
-        <KPICard icon={CreditCard} label="Hutang Baru" value={formatRp(kpi.newDebt)} color="amber" />
-        <KPICard icon={ArrowUpDown} label="Mutasi Rekening" value={formatRp(kpi.accountTurnover)} color="violet" />
-        <KPICard icon={PieChart} label="Realisasi Budget" value={`${kpi.budgetRealisation.toFixed(0)}%`} color="cyan" />
+        <KPICard icon={TrendingUp} label={t('Total Pemasukan', 'Total Income')} value={formatRp(kpi.totalIncome)} color="emerald" />
+        <KPICard icon={TrendingDown} label={t('Total Pengeluaran', 'Total Expenses')} value={formatRp(kpi.totalExpense)} color="red" />
+        <KPICard icon={DollarSign} label={t('Total Tabungan', 'Total Savings')} value={formatRp(kpi.totalSavings)} color="blue" />
+        <KPICard icon={CreditCard} label={t('Hutang Baru', 'New Debt')} value={formatRp(kpi.newDebt)} color="amber" />
+        <KPICard icon={ArrowUpDown} label={t('Mutasi Rekening', 'Account Turnover')} value={formatRp(kpi.accountTurnover)} color="violet" />
+        <KPICard icon={PieChart} label={t('Realisasi Budget', 'Budget Realisation')} value={`${kpi.budgetRealisation.toFixed(0)}%`} color="cyan" />
       </div>
 
       {/* Charts Row 1 */}
@@ -122,11 +122,11 @@ export default function DashboardPage() {
               <LineChart data={moneyFlow}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                 <XAxis dataKey="period" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `${(v / 1e6).toFixed(0)}jt`} />
+                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => formatCompactMoney(v, lang)} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                <Line type="monotone" dataKey="income" name="Pemasukan" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="expense" name="Pengeluaran" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444' }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="income" name={t('Pemasukan', 'Income')} stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="expense" name={t('Pengeluaran', 'Expenses')} stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444' }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -136,15 +136,15 @@ export default function DashboardPage() {
 
         {/* Spending Overview */}
         <div className="card">
-          <h3 className="font-semibold text-white mb-4">Top 5 Pengeluaran</h3>
+          <h3 className="font-semibold text-white mb-4">{t('Top 5 Pengeluaran', 'Top 5 Expenses')}</h3>
           {spendingOverview.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={spendingOverview} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
-                <XAxis type="number" stroke="#64748b" fontSize={11} tickFormatter={(v) => `${(v / 1e6).toFixed(1)}jt`} />
+                <XAxis type="number" stroke="#64748b" fontSize={11} tickFormatter={(v) => formatCompactMoney(v, lang)} />
                 <YAxis type="category" dataKey="category" stroke="#64748b" fontSize={11} width={100} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="amount" name="Jumlah" radius={[0, 6, 6, 0]}>
+                <Bar dataKey="amount" name={t('Jumlah', 'Amount')} radius={[0, 6, 6, 0]}>
                   {spendingOverview.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
@@ -161,15 +161,15 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Investment Summary */}
         <div className="card">
-          <h3 className="font-semibold text-white mb-4">Alokasi Investasi</h3>
+          <h3 className="font-semibold text-white mb-4">{t('Alokasi Investasi', 'Investment Allocation')}</h3>
           {investmentSummary.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={investmentSummary}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                 <XAxis dataKey="assetType" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `${(v / 1e6).toFixed(0)}jt`} />
+                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => formatCompactMoney(v, lang)} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="value" name="Nilai" fill="#8b5cf6" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="value" name={t('Nilai', 'Value')} fill="#8b5cf6" radius={[6, 6, 0, 0]}>
                   {investmentSummary.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
@@ -183,7 +183,7 @@ export default function DashboardPage() {
 
         {/* Goals Progress */}
         <div className="card">
-          <h3 className="font-semibold text-white mb-4">Progress Goals</h3>
+          <h3 className="font-semibold text-white mb-4">{t('Progress Goals', 'Goals Progress')}</h3>
           {goalsProgress.length > 0 ? (
             <div className="space-y-4">
               {goalsProgress.map((g, i) => (
@@ -214,13 +214,13 @@ export default function DashboardPage() {
       {/* Expenses Summary Table */}
       {expensesSummary.length > 0 && (
         <div className="card overflow-x-auto">
-          <h3 className="font-semibold text-white mb-4">Budget vs Realisasi</h3>
+          <h3 className="font-semibold text-white mb-4">{t('Budget vs Realisasi', 'Budget vs Actual')}</h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-slate-400 border-b border-slate-700">
-                <th className="pb-3 pr-4">Kategori</th>
+                <th className="pb-3 pr-4">{t('Kategori', 'Category')}</th>
                 <th className="pb-3 pr-4 text-right">Budget</th>
-                <th className="pb-3 pr-4 text-right">Aktual</th>
+                <th className="pb-3 pr-4 text-right">{t('Aktual', 'Actual')}</th>
                 <th className="pb-3 pr-4 text-right">Progress</th>
                 <th className="pb-3">Status</th>
               </tr>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-3">
                       <span className={`${status === 'Over' ? 'badge-danger' : status === 'Hampir' ? 'badge-warning' : 'badge-success'}`}>
-                        {status === 'Over' ? 'Over Budget' : status === 'Hampir' ? 'Hampir Over' : 'Aman'}
+                        {status === 'Over' ? t('Over Budget', 'Over Budget') : status === 'Hampir' ? t('Hampir Over', 'Almost Over') : t('Aman', 'On Track')}
                       </span>
                     </td>
                   </tr>
@@ -265,11 +265,11 @@ export default function DashboardPage() {
         <div className="card border-amber-500/30 bg-amber-500/5">
           <div className="flex items-center gap-2 mb-3">
             <Lightbulb className="w-5 h-5 text-amber-400" />
-            <h3 className="font-semibold text-amber-300">Tips Keuangan</h3>
+            <h3 className="font-semibold text-amber-300">{t('Tips Keuangan', 'Financial Tips')}</h3>
           </div>
           <ul className="space-y-2">
             {tips.map((tip, i) => (
-              <li key={i} className="text-sm text-slate-300">{tip}</li>
+              <li key={i} className="text-sm text-slate-300">{translateTip(tip, lang)}</li>
             ))}
           </ul>
         </div>
@@ -305,9 +305,10 @@ function KPICard({ icon: Icon, label, value, color }: {
 }
 
 function EmptyState() {
+  const { t } = useLang();
   return (
     <div className="flex items-center justify-center h-40 text-slate-500 text-sm">
-      Belum ada data
+      {t('Belum ada data', 'No data yet')}
     </div>
   );
 }

@@ -8,13 +8,15 @@ import ProGate from '../../components/ProGate';
 import { useSetupData } from '../../hooks';
 import type { BudgetSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
+import { formatMoney as formatRp } from '@/lib/currency';
+import { useLang, localeOf } from '@/app/i18n';
 
-function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
 type BudgetRow = BudgetSummary;
 
 export default function BudgetPage() {
   const { plan, role } = useAuth();
+  const { t } = useLang();
   const [budgets, setBudgets] = useState<BudgetRow[]>([]);
 
   if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Budget" />;
@@ -36,10 +38,10 @@ export default function BudgetPage() {
     try {
       const res = await fetch('/api/budget', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       if (!res.ok) throw new Error((await res.json()).error);
-      toast('Budget dihapus', 'success');
+      toast(t('Budget dihapus', 'Budget deleted'), 'success');
       setConfirmDeleteId(null);
       fetch_();
-    } catch (err: any) { toast(err.message || 'Gagal menghapus', 'error'); }
+    } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
 
   return (
@@ -47,10 +49,10 @@ export default function BudgetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Budget</h1>
-          <p className="text-sm text-slate-400">Budget per kategori per bulan</p>
+          <p className="text-sm text-slate-400">{t('Budget per kategori per bulan', 'Budget per category per month')}</p>
         </div>
         <button onClick={() => { setEditData(null); setShowForm(true); }} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Set Budget
+          <Plus className="w-4 h-4" /> {t('Set Budget', 'Set Budget')}
         </button>
       </div>
 
@@ -58,19 +60,19 @@ export default function BudgetPage() {
         {loading ? (
           <div className="flex justify-center py-10"><RefreshCw className="w-6 h-6 text-blue-400 animate-spin" /></div>
         ) : budgets.length === 0 ? (
-          <p className="text-center text-slate-500 py-10">Belum ada budget. Klik "Set Budget" untuk memulai.</p>
+          <p className="text-center text-slate-500 py-10">{t('Belum ada budget. Klik "Set Budget" untuk memulai.', 'No budgets yet. Click "Set Budget" to get started.')}</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-slate-300 border-b border-slate-700">
-                <th className="pb-3 pr-3">Bulan</th>
-                <th className="pb-3 pr-3">Kategori</th>
+                <th className="pb-3 pr-3">{t('Bulan', 'Month')}</th>
+                <th className="pb-3 pr-3">{t('Kategori', 'Category')}</th>
                 <th className="pb-3 pr-3 text-right">Budget</th>
-                <th className="pb-3 pr-3 text-right">Realisasi</th>
-                <th className="pb-3 pr-3 text-right">Selisih</th>
+                <th className="pb-3 pr-3 text-right">{t('Realisasi', 'Actual')}</th>
+                <th className="pb-3 pr-3 text-right">{t('Selisih', 'Difference')}</th>
                 <th className="pb-3 pr-3">Progress</th>
                 <th className="pb-3 pr-3">Status</th>
-                <th className="pb-3 text-center">Aksi</th>
+                <th className="pb-3 text-center">{t('Aksi', 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -90,14 +92,14 @@ export default function BudgetPage() {
                     </div>
                   </td>
                   <td className="py-3 pr-3">
-                    <span className={b.status === 'Aman' ? 'badge-success' : b.status === 'Hampir Over' ? 'badge-warning' : 'badge-danger'}>{b.status}</span>
+                    <span className={b.status === 'Aman' ? 'badge-success' : b.status === 'Hampir Over' ? 'badge-warning' : 'badge-danger'}>{b.status === 'Aman' ? t('Aman', 'On Track') : b.status === 'Hampir Over' ? t('Hampir Over', 'Almost Over') : b.status === 'Over Budget' ? 'Over Budget' : b.status}</span>
                   </td>
                   <td className="py-3 text-center">
                     {b.id && confirmDeleteId === b.id ? (
                       <div className="flex items-center gap-1 justify-center">
-                        <span className="text-xs text-slate-400 mr-1">Hapus?</span>
-                        <button onClick={() => handleDelete(b.id!)} className="text-red-400 text-xs font-medium px-2 py-1 bg-red-500/10 rounded">Ya</button>
-                        <button onClick={() => setConfirmDeleteId(null)} className="text-slate-400 text-xs px-2 py-1">Tidak</button>
+                        <span className="text-xs text-slate-400 mr-1">{t('Hapus?', 'Delete?')}</span>
+                        <button onClick={() => handleDelete(b.id!)} className="text-red-400 text-xs font-medium px-2 py-1 bg-red-500/10 rounded">{t('Ya', 'Yes')}</button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="text-slate-400 text-xs px-2 py-1">{t('Tidak', 'No')}</button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 justify-center">
@@ -130,6 +132,7 @@ function BudgetForm({ onClose, onSuccess, editData }: {
   editData?: BudgetRow | null;
 }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const { categories, loading: setupLoading } = useSetupData();
   const expenseCategories = categories.filter(c => c.type === 'expense' || c.type === 'both');
 
@@ -161,7 +164,7 @@ function BudgetForm({ onClose, onSuccess, editData }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.category) { setError('Pilih kategori'); return; }
+    if (!form.category) { setError(t('Pilih kategori', 'Select a category')); return; }
     setSubmitting(true); setError('');
     try {
       if (editData?.id) {
@@ -172,11 +175,11 @@ function BudgetForm({ onClose, onSuccess, editData }: {
         const res = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month: formatMonthForApi(form.month), category: form.category, amount: form.amount }) });
         if (!res.ok) throw new Error((await res.json()).error);
       }
-      toast(editData ? 'Budget berhasil diupdate!' : 'Budget berhasil disimpan!', 'success');
+      toast(editData ? t('Budget berhasil diupdate!', 'Budget updated!') : t('Budget berhasil disimpan!', 'Budget saved!'), 'success');
       onSuccess();
     } catch (err: any) {
       setError(err.message);
-      toast(err.message || 'Gagal menyimpan budget', 'error');
+      toast(err.message || t('Gagal menyimpan budget', 'Failed to save budget'), 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -189,13 +192,13 @@ function BudgetForm({ onClose, onSuccess, editData }: {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="form-label">Bulan</label>
+            <label className="form-label">{t('Bulan', 'Month')}</label>
             <input type="month" value={form.month} onChange={e => setForm({ ...form, month: e.target.value })} className="input-field w-full text-sm" required disabled={!!editData} />
           </div>
           <div>
-            <label className="form-label">Kategori</label>
+            <label className="form-label">{t('Kategori', 'Category')}</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field w-full text-sm" required disabled={setupLoading || !!editData}>
-              <option value="">{setupLoading ? 'Memuat...' : 'Pilih kategori'}</option>
+              <option value="">{setupLoading ? t('Memuat...', 'Loading...') : t('Pilih kategori', 'Select a category')}</option>
               {expenseCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
           </div>
@@ -204,7 +207,7 @@ function BudgetForm({ onClose, onSuccess, editData }: {
             <RpInput value={form.amount} onChange={v => setForm({ ...form, amount: v })} placeholder="1.000.000" required />
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'Menyimpan...' : editData ? 'Update Budget' : 'Simpan Budget'}</button>
+          <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? t('Menyimpan...', 'Saving...') : editData ? t('Update Budget', 'Update Budget') : t('Simpan Budget', 'Save Budget')}</button>
         </form>
       </div>
     </div>

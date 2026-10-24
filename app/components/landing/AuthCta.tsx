@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/app/auth-context';
+import { useLang } from '@/app/i18n';
 
 type Variant = 'nav' | 'hero' | 'final';
 
@@ -14,6 +15,7 @@ const ghost =
 // Tombol aksi yang menyesuaikan status login. Landing tidak pernah me-redirect paksa.
 export default function AuthCta({ variant }: { variant: Variant }) {
   const { isAuthenticated, loading } = useAuth();
+  const { t } = useLang();
   const loggedIn = !loading && isAuthenticated;
 
   if (variant === 'nav') {
@@ -21,15 +23,15 @@ export default function AuthCta({ variant }: { variant: Variant }) {
       <div className="flex items-center gap-2 sm:gap-3">
         {loggedIn ? (
           <Link href="/dashboard" className={`${primary} px-4 py-2 text-sm`}>
-            Buka Dashboard <ArrowRight className="h-4 w-4" />
+            {t('Buka Dashboard', 'Open Dashboard')} <ArrowRight className="h-4 w-4" />
           </Link>
         ) : (
           <>
             <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-[#cbd5e1] transition hover:text-[#ffffff]">
-              Masuk
+              {t('Masuk', 'Log in')}
             </Link>
             <Link href="/register" className={`${primary} px-4 py-2 text-sm`}>
-              Daftar Gratis
+              {t('Daftar Gratis', 'Sign Up Free')}
             </Link>
           </>
         )}
@@ -42,7 +44,7 @@ export default function AuthCta({ variant }: { variant: Variant }) {
   if (loggedIn) {
     return (
       <Link href="/dashboard" className={`${primary} ${size}`}>
-        Buka Dashboard <ArrowRight className="h-5 w-5" />
+        {t('Buka Dashboard', 'Open Dashboard')} <ArrowRight className="h-5 w-5" />
       </Link>
     );
   }
@@ -50,15 +52,15 @@ export default function AuthCta({ variant }: { variant: Variant }) {
   return (
     <>
       <Link href="/register" className={`${primary} ${size}`}>
-        Daftar Gratis <ArrowRight className="h-5 w-5" />
+        {t('Daftar Gratis', 'Sign Up Free')} <ArrowRight className="h-5 w-5" />
       </Link>
       {variant === 'hero' ? (
         <a href="#harga" className={`${ghost} ${size}`}>
-          Lihat Harga
+          {t('Lihat Harga', 'See Pricing')}
         </a>
       ) : (
         <Link href="/login" className={`${ghost} ${size}`}>
-          Sudah punya akun? Masuk
+          {t('Sudah punya akun? Masuk', 'Have an account? Log in')}
         </Link>
       )}
     </>

@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, Eye, EyeOff, Check } from 'lucide-react';
+import { useLang } from '../i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t, tError } = useLang();
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -36,13 +39,13 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Pendaftaran gagal');
+        setError(tError(data.error || t('Pendaftaran gagal', 'Registration failed')));
         return;
       }
       setSuccess(true);
       setTimeout(() => { window.location.href = '/login'; }, 2000);
     } catch {
-      setError('Terjadi kesalahan. Coba lagi.');
+      setError(t('Terjadi kesalahan. Coba lagi.', 'Something went wrong. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -51,9 +54,9 @@ export default function RegisterPage() {
   const passwordStrength = () => {
     const p = form.password;
     if (!p) return null;
-    if (p.length < 8) return { label: 'Terlalu pendek', color: 'text-red-400', bar: 'bg-red-500', width: 'w-1/4' };
-    if (p.length < 12) return { label: 'Cukup', color: 'text-yellow-400', bar: 'bg-yellow-500', width: 'w-2/4' };
-    return { label: 'Kuat', color: 'text-green-400', bar: 'bg-green-500', width: 'w-full' };
+    if (p.length < 8) return { label: t('Terlalu pendek', 'Too short'), color: 'text-red-400', bar: 'bg-red-500', width: 'w-1/4' };
+    if (p.length < 12) return { label: t('Cukup', 'Fair'), color: 'text-yellow-400', bar: 'bg-yellow-500', width: 'w-2/4' };
+    return { label: t('Kuat', 'Strong'), color: 'text-green-400', bar: 'bg-green-500', width: 'w-full' };
   };
   const strength = passwordStrength();
 
@@ -64,15 +67,16 @@ export default function RegisterPage() {
           <div className="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mx-auto">
             <Check className="w-8 h-8 text-green-400" />
           </div>
-          <h2 className="text-xl font-bold text-white">Akun berhasil dibuat!</h2>
-          <p className="text-slate-400">Mengalihkan ke halaman login...</p>
+          <h2 className="text-xl font-bold text-white">{t('Akun berhasil dibuat!', 'Account created!')}</h2>
+          <p className="text-slate-400">{t('Mengalihkan ke halaman login...', 'Redirecting to the login page...')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4"><LanguageSwitcher variant="app" /></div>
       <div className="w-full max-w-md">
 
         {/* Logo */}
@@ -83,11 +87,11 @@ export default function RegisterPage() {
             </div>
             <span className="text-2xl font-bold text-white">FinancePro</span>
           </Link>
-          <p className="text-slate-400 mt-2 text-sm">Buat akun gratis — mulai kelola keuanganmu</p>
+          <p className="text-slate-400 mt-2 text-sm">{t('Buat akun gratis — mulai kelola keuanganmu', 'Create a free account and start managing your money')}</p>
         </div>
 
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-          <h1 className="text-lg font-bold text-white mb-5">Daftar Akun</h1>
+          <h1 className="text-lg font-bold text-white mb-5">{t('Daftar Akun', 'Sign Up')}</h1>
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg mb-4">
@@ -102,21 +106,21 @@ export default function RegisterPage() {
                 name="username"
                 value={form.username}
                 onChange={handleChange}
-                placeholder="contoh: john_doe"
+                placeholder={t('contoh: john_doe', 'e.g. john_doe')}
                 required
                 autoFocus
                 className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-500"
               />
-              <p className="text-xs text-slate-500 mt-1">Huruf, angka, underscore. Tidak bisa diubah.</p>
+              <p className="text-xs text-slate-500 mt-1">{t('Huruf, angka, underscore. Tidak bisa diubah.', 'Letters, numbers, underscores. Cannot be changed.')}</p>
             </div>
 
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">Nama Lengkap</label>
+              <label className="text-sm text-slate-400 mb-1 block">{t('Nama Lengkap', 'Full Name')}</label>
               <input
                 name="displayName"
                 value={form.displayName}
                 onChange={handleChange}
-                placeholder="Nama kamu"
+                placeholder={t('Nama kamu', 'Your name')}
                 className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-500"
               />
             </div>
@@ -128,7 +132,7 @@ export default function RegisterPage() {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="email@kamu.com (opsional)"
+                placeholder={t('email@kamu.com (opsional)', 'you@email.com (optional)')}
                 className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-500"
               />
             </div>
@@ -141,7 +145,7 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Minimal 8 karakter"
+                  placeholder={t('Minimal 8 karakter', 'At least 8 characters')}
                   required
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 pr-10 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-500"
                 />
@@ -164,13 +168,13 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">Konfirmasi Password <span className="text-red-400">*</span></label>
+              <label className="text-sm text-slate-400 mb-1 block">{t('Konfirmasi Password', 'Confirm Password')} <span className="text-red-400">*</span></label>
               <input
                 name="confirmPassword"
                 type="password"
                 value={form.confirmPassword}
                 onChange={handleChange}
-                placeholder="Ulangi password"
+                placeholder={t('Ulangi password', 'Repeat password')}
                 required
                 className={`w-full bg-slate-700 border rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none placeholder-slate-500
                   ${form.confirmPassword && form.confirmPassword !== form.password
@@ -181,7 +185,7 @@ export default function RegisterPage() {
                   }`}
               />
               {form.confirmPassword && form.confirmPassword !== form.password && (
-                <p className="text-xs text-red-400 mt-1">Password tidak cocok</p>
+                <p className="text-xs text-red-400 mt-1">{t('Password tidak cocok', 'Passwords do not match')}</p>
               )}
             </div>
 
@@ -190,23 +194,23 @@ export default function RegisterPage() {
               disabled={loading || (!!form.confirmPassword && form.password !== form.confirmPassword)}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors mt-2"
             >
-              {loading ? 'Membuat akun...' : 'Buat Akun Gratis'}
+              {loading ? t('Membuat akun...', 'Creating account...') : t('Buat Akun Gratis', 'Create Free Account')}
             </button>
           </form>
 
           <p className="text-center text-slate-400 text-sm mt-5">
-            Sudah punya akun?{' '}
+            {t('Sudah punya akun?', 'Already have an account?')}{' '}
             <Link href="/login" className="text-blue-400 hover:underline font-medium">
-              Login
+              {t('Login', 'Log in')}
             </Link>
           </p>
         </div>
 
         {/* Free plan info */}
         <div className="mt-4 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-400">
-          <p className="text-white font-medium mb-2">Akun Free sudah termasuk:</p>
+          <p className="text-white font-medium mb-2">{t('Akun Free sudah termasuk:', 'The Free account includes:')}</p>
           <ul className="space-y-1">
-            {['Catat transaksi (unlimited)', 'Dashboard keuangan', 'Laporan bulanan', 'Telegram bot'].map(f => (
+            {[t('Catat transaksi (unlimited)', 'Unlimited transaction logging'), t('Dashboard keuangan', 'Finance dashboard'), t('Laporan bulanan', 'Monthly report'), t('Telegram bot', 'Telegram bot')].map(f => (
               <li key={f} className="flex items-center gap-2">
                 <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
                 {f}

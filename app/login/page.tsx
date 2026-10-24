@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import { useToast } from '../providers';
 import { Lock } from 'lucide-react';
+import { useLang } from '../i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -14,6 +16,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { t, tError } = useLang();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -29,18 +32,20 @@ export default function LoginPage() {
 
     try {
       await login(username, password);
-      toast('Login berhasil! Selamat datang 🎉', 'success');
+      toast(t('Login berhasil! Selamat datang 🎉', 'Login successful! Welcome 🎉'), 'success');
       // Full page redirect ensures cookie is included in next request
       window.location.href = '/dashboard';
     } catch (err: any) {
-      setError(err.message || 'Login gagal');
-      toast(err.message || 'Login gagal', 'error');
+      const msg = tError(err.message || t('Login gagal', 'Login failed'));
+      setError(msg);
+      toast(msg, 'error');
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4"><LanguageSwitcher variant="app" /></div>
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
@@ -50,7 +55,7 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">FinancePro</h1>
-          <p className="text-slate-400">Kelola keuangan pribadi dengan mudah</p>
+          <p className="text-slate-400">{t('Kelola keuangan pribadi dengan mudah', 'Manage your personal finances with ease')}</p>
         </div>
 
         {/* Login Form */}
@@ -62,7 +67,7 @@ export default function LoginPage() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="Masukkan username"
+              placeholder={t('Masukkan username', 'Enter your username')}
               required
               autoFocus
               disabled={loading}
@@ -76,7 +81,7 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="Masukkan password"
+              placeholder={t('Masukkan password', 'Enter your password')}
               required
               disabled={loading}
             />
@@ -93,20 +98,20 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold py-3 rounded-lg transition-all transform hover:scale-105 active:scale-95"
           >
-            {loading ? 'Sedang login...' : 'Login'}
+            {loading ? t('Sedang login...', 'Signing in...') : t('Login', 'Log in')}
           </button>
 
           <p className="text-center text-slate-400 text-sm">
-            Belum punya akun?{' '}
+            {t('Belum punya akun?', 'No account yet?')}{' '}
             <a href="/register" className="text-blue-400 hover:underline font-medium">
-              Daftar gratis
+              {t('Daftar gratis', 'Sign up free')}
             </a>
           </p>
         </form>
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-xs mt-6">
-          FinancePro © 2026 • Personal Finance Manager
+          FinancePro © {new Date().getFullYear()} • Personal Finance Manager
         </p>
       </div>
     </div>

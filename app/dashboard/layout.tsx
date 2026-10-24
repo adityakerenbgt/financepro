@@ -10,25 +10,31 @@ import {
 import { useState, useEffect } from 'react';
 import { useTheme } from '../providers';
 import { useAuth } from '../auth-context';
+import { useLang } from '../i18n';
+import { formatMoney } from '@/lib/currency';
+import { PRICING } from '@/lib/plans';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import CurrencySwitcher from '../components/CurrencySwitcher';
 
 const allNavItems = [
-  { href: '/dashboard/admin', label: 'Admin Panel', icon: ShieldCheck, adminOnly: true },
-  { href: '/dashboard',            label: 'Dashboard',         icon: BarChart3 },
-  { href: '/transactions',         label: 'Transaksi',         icon: Wallet },
-  { href: '/dashboard/rekening',   label: 'Rekening',          icon: Building2 },
-  { href: '/dashboard/savings',    label: 'Nabung & Investasi',icon: TrendingUp },
-  { href: '/dashboard/debts',      label: 'Hutang & Piutang',  icon: CreditCard },
-  { href: '/dashboard/assets',     label: 'Aset',              icon: Landmark },
-  { href: '/dashboard/budget',     label: 'Budget',            icon: PieChart },
-  { href: '/dashboard/goals',      label: 'Goals',             icon: Target },
-  { href: '/dashboard/reports',    label: 'Laporan',           icon: CalendarDays },
-  { href: '/dashboard/settings',   label: 'Pengaturan',        icon: Settings },
+  { href: '/dashboard/admin', label: 'Admin Panel', en: 'Admin Panel', icon: ShieldCheck, adminOnly: true },
+  { href: '/dashboard',            label: 'Dashboard', en: 'Dashboard',         icon: BarChart3 },
+  { href: '/transactions',         label: 'Transaksi', en: 'Transactions',         icon: Wallet },
+  { href: '/dashboard/rekening',   label: 'Rekening', en: 'Accounts',          icon: Building2 },
+  { href: '/dashboard/savings',    label: 'Nabung & Investasi', en: 'Savings & Investments',icon: TrendingUp },
+  { href: '/dashboard/debts',      label: 'Hutang & Piutang', en: 'Debts & Receivables',  icon: CreditCard },
+  { href: '/dashboard/assets',     label: 'Aset', en: 'Assets',              icon: Landmark },
+  { href: '/dashboard/budget',     label: 'Budget', en: 'Budget',            icon: PieChart },
+  { href: '/dashboard/goals',      label: 'Goals', en: 'Goals',             icon: Target },
+  { href: '/dashboard/reports',    label: 'Laporan', en: 'Reports',           icon: CalendarDays },
+  { href: '/dashboard/settings',   label: 'Pengaturan', en: 'Settings',        icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLang();
   const { logout, role, plan } = useAuth();
   const navItems = allNavItems.filter(item => !item.adminOnly || role === 'ADMIN');
   const isProUser = role === 'ADMIN' || plan === 'PRO';
@@ -118,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? t(item.label, item.en) : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
                   ${collapsed ? 'justify-center' : ''}
                   ${isActive
@@ -127,7 +133,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }`}
               >
                 <item.icon className="w-4 h-4 shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate">{t(item.label, item.en)}</span>}
               </Link>
             );
           })}
@@ -136,10 +142,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Bottom: theme toggle + collapse + avatar */}
         <div className="p-2 border-t border-slate-800 space-y-1 shrink-0">
 
+          {/* Bahasa & mata uang (disembunyikan saat sidebar diciutkan) */}
+          {!collapsed && (
+            <div className="space-y-2 px-1 pb-2">
+              <LanguageSwitcher variant="app" />
+              <CurrencySwitcher />
+            </div>
+          )}
+
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={theme === 'dark' ? t('Ganti ke mode terang', 'Switch to Light Mode') : t('Ganti ke mode gelap', 'Switch to Dark Mode')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
               text-slate-400 hover:text-white hover:bg-slate-800 transition-colors
               ${collapsed ? 'justify-center' : ''}`}
@@ -148,14 +162,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ? <Sun className="w-4 h-4 shrink-0" />
               : <Moon className="w-4 h-4 shrink-0" />}
             {!collapsed && (
-              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+              <span>{theme === 'dark' ? t('Mode Terang', 'Light Mode') : t('Mode Gelap', 'Dark Mode')}</span>
             )}
           </button>
 
           {/* Collapse toggle — desktop only */}
           <button
             onClick={toggleCollapsed}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? t('Perbesar sidebar', 'Expand sidebar') : t('Kecilkan sidebar', 'Collapse sidebar')}
             className={`hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm
               text-slate-400 hover:text-white hover:bg-slate-800 transition-colors
               ${collapsed ? 'justify-center' : ''}`}
@@ -163,7 +177,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {collapsed
               ? <ChevronRight className="w-4 h-4 shrink-0" />
               : <ChevronLeft className="w-4 h-4 shrink-0" />}
-            {!collapsed && <span>Collapse</span>}
+            {!collapsed && <span>{t('Kecilkan', 'Collapse')}</span>}
           </button>
 
           {/* Upgrade banner for FREE users */}
@@ -174,15 +188,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Sparkles className="w-4 h-4 text-yellow-400 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-yellow-400 font-semibold">Upgrade ke PRO</p>
-                <p className="text-xs text-slate-500 truncate">Rp 29.000/bln</p>
+                <p className="text-xs text-yellow-400 font-semibold">{t('Upgrade ke PRO', 'Upgrade to PRO')}</p>
+                <p className="text-xs text-slate-500 truncate">{formatMoney(PRICING.proMonthly)}{t('/bln', '/mo')}</p>
               </div>
             </Link>
           )}
           {!isProUser && collapsed && (
             <Link
               href="/dashboard/upgrade"
-              title="Upgrade ke PRO"
+              title={t('Upgrade ke PRO', 'Upgrade to PRO')}
               className="flex items-center justify-center px-3 py-2 rounded-lg text-yellow-400 hover:bg-yellow-500/10 transition-colors"
             >
               <Sparkles className="w-4 h-4" />
@@ -210,7 +224,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )}
                 </div>
                 <button onClick={handleLogout} className="text-xs text-slate-500 hover:text-red-400 transition-colors">
-                  Logout
+                  {t('Keluar', 'Logout')}
                 </button>
               </div>
             )}
@@ -220,7 +234,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {collapsed && (
             <button
               onClick={handleLogout}
-              title="Logout"
+              title={t('Keluar', 'Logout')}
               className="w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
               <LogOut className="w-4 h-4" />
@@ -237,6 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="w-5 h-5" />
           </button>
           <span className="font-semibold text-white flex-1">FinancePro</span>
+          <LanguageSwitcher variant="app" />
           <button onClick={toggleTheme} className="text-slate-400 hover:text-white">
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>

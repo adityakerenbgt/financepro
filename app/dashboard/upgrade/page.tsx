@@ -4,10 +4,15 @@ import { useAuth } from '@/app/auth-context';
 import { Check, Sparkles, Zap } from 'lucide-react';
 import Link from 'next/link';
 
-import { FREE_FEATURES as freeFeatures, PRO_FEATURES as proFeatures, PRICING } from '@/lib/plans';
+import { FREE_FEATURES_I18N, PRO_FEATURES_I18N, PRICING } from '@/lib/plans';
+import { useLang } from '@/app/i18n';
+import { formatMoney } from '@/lib/currency';
 
 export default function UpgradePage() {
   const { plan, role } = useAuth();
+  const { t } = useLang();
+  const freeFeatures = FREE_FEATURES_I18N.map(([id, en]) => t(id, en));
+  const proFeatures = PRO_FEATURES_I18N.map(([id, en]) => t(id, en));
   const isAlreadyPro = role === 'ADMIN' || plan === 'PRO';
 
   return (
@@ -17,13 +22,13 @@ export default function UpgradePage() {
           <Sparkles className="w-5 h-5 text-yellow-400" />
           <span className="text-yellow-400 font-semibold uppercase tracking-wide text-sm">FinancePro Premium</span>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-3">Upgrade ke PRO</h1>
+        <h1 className="text-3xl font-bold text-white mb-3">{t('Upgrade ke PRO', 'Upgrade to PRO')}</h1>
         <p className="text-slate-400 max-w-lg mx-auto">
-          Kelola keuangan lebih serius dengan akses penuh ke semua fitur manajemen keuangan pribadi.
+          {t('Kelola keuangan lebih serius dengan akses penuh ke semua fitur manajemen keuangan pribadi.', 'Take your finances seriously with full access to every personal finance feature.')}
         </p>
         {isAlreadyPro && (
           <div className="mt-4 inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
-            <Check className="w-4 h-4" /> Kamu sudah berlangganan PRO
+            <Check className="w-4 h-4" /> {t('Kamu sudah berlangganan PRO', 'You are subscribed to PRO')}
           </div>
         )}
       </div>
@@ -36,8 +41,8 @@ export default function UpgradePage() {
           <div className="mb-4">
             <h2 className="text-lg font-bold text-white">Free</h2>
             <div className="mt-2">
-              <span className="text-3xl font-bold text-white">Rp 0</span>
-              <span className="text-slate-400 ml-1">/ bulan</span>
+              <span className="text-3xl font-bold text-white">{formatMoney(0)}</span>
+              <span className="text-slate-400 ml-1">{t('/ bulan', '/ month')}</span>
             </div>
           </div>
           <ul className="space-y-3 mb-6">
@@ -49,7 +54,7 @@ export default function UpgradePage() {
             ))}
           </ul>
           <div className="text-center text-slate-500 text-sm py-2">
-            {plan === 'FREE' ? 'Plan kamu sekarang' : ''}
+            {plan === 'FREE' ? t('Plan kamu sekarang', 'Your current plan') : ''}
           </div>
         </div>
 
@@ -57,18 +62,18 @@ export default function UpgradePage() {
         <div className="bg-gradient-to-b from-yellow-500/10 to-orange-500/5 border border-yellow-500/40 rounded-2xl p-6 relative overflow-hidden">
           <div className="absolute top-3 right-3">
             <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-              <Zap className="w-3 h-3" /> POPULER
+              <Zap className="w-3 h-3" /> {t('POPULER', 'POPULAR')}
             </span>
           </div>
           <div className="mb-4">
             <h2 className="text-lg font-bold text-white">PRO</h2>
             <div className="mt-2 flex items-end gap-3">
               <div>
-                <span className="text-3xl font-bold text-white">Rp {PRICING.proMonthly.toLocaleString('id-ID')}</span>
-                <span className="text-slate-400 ml-1">/ bulan</span>
+                <span className="text-3xl font-bold text-white">{formatMoney(PRICING.proMonthly)}</span>
+                <span className="text-slate-400 ml-1">{t('/ bulan', '/ month')}</span>
               </div>
               <div className="text-sm text-slate-400 mb-1">
-                atau <span className="text-yellow-400 font-semibold">Rp {PRICING.proYearly.toLocaleString('id-ID')}</span> / tahun
+                {t('atau', 'or')} <span className="text-yellow-400 font-semibold">{formatMoney(PRICING.proYearly)}</span> {t('/ tahun', '/ year')}
               </div>
             </div>
           </div>
@@ -83,22 +88,22 @@ export default function UpgradePage() {
 
           {isAlreadyPro ? (
             <div className="w-full text-center py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-sm font-medium">
-              ✓ Aktif
+              ✓ {t('Aktif', 'Active')}
             </div>
           ) : (
             <div className="space-y-3">
               <div className="bg-slate-800/60 border border-slate-600 rounded-xl p-4 text-sm text-slate-300">
-                <p className="font-medium text-white mb-2">Cara upgrade:</p>
+                <p className="font-medium text-white mb-2">{t('Cara upgrade:', 'How to upgrade:')}</p>
                 <ol className="space-y-1 list-decimal list-inside text-slate-400">
-                  <li>Transfer ke rekening di bawah</li>
-                  <li>Kirim bukti ke WhatsApp/email</li>
-                  <li>Akun diaktifkan dalam 1x24 jam</li>
+                  <li>{t('Transfer ke rekening di bawah', 'Transfer to the account below')}</li>
+                  <li>{t('Kirim bukti ke WhatsApp/email', 'Send the proof via WhatsApp/email')}</li>
+                  <li>{t('Akun diaktifkan dalam 1x24 jam', 'Your account is activated within 24 hours')}</li>
                 </ol>
               </div>
               <div className="bg-slate-800/60 border border-slate-600 rounded-xl p-4 text-sm">
-                <p className="text-slate-400 text-xs mb-2">Rekening pembayaran:</p>
+                <p className="text-slate-400 text-xs mb-2">{t('Rekening pembayaran:', 'Payment account:')}</p>
                 <p className="text-white font-mono font-semibold">BCA — 1234567890</p>
-                <p className="text-slate-400 text-xs">a.n. Virgian Galang</p>
+                <p className="text-slate-400 text-xs">{t('a.n.', 'a/n')} Virgian Galang</p>
               </div>
               <a
                 href="https://wa.me/628xxxxxxxxxx?text=Halo,%20saya%20mau%20upgrade%20FinancePro%20PRO"
@@ -106,7 +111,7 @@ export default function UpgradePage() {
                 rel="noopener noreferrer"
                 className="block w-full text-center bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-yellow-500/20"
               >
-                Hubungi untuk Upgrade
+                {t('Hubungi untuk Upgrade', 'Contact us to Upgrade')}
               </a>
             </div>
           )}
@@ -114,9 +119,9 @@ export default function UpgradePage() {
       </div>
 
       <p className="text-center text-slate-500 text-sm">
-        Ada pertanyaan?{' '}
+        {t('Ada pertanyaan?', 'Questions?')}{' '}
         <Link href="mailto:hello@grexion.ai" className="text-blue-400 hover:underline">
-          Hubungi kami
+          {t('Hubungi kami', 'Contact us')}
         </Link>
       </p>
     </div>

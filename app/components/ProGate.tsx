@@ -3,6 +3,9 @@
 import { useAuth } from '@/app/auth-context';
 import { Lock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useLang } from '@/app/i18n';
+import { formatMoney } from '@/lib/currency';
+import { PRICING } from '@/lib/plans';
 
 interface ProGateProps {
   children?: React.ReactNode;
@@ -11,6 +14,7 @@ interface ProGateProps {
 
 export default function ProGate({ children, feature }: ProGateProps) {
   const { plan, role, loading } = useAuth();
+  const { t } = useLang();
 
   if (loading) return null;
 
@@ -38,25 +42,25 @@ export default function ProGate({ children, feature }: ProGateProps) {
 
           <div className="flex items-center justify-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-yellow-400" />
-            <span className="text-yellow-400 font-semibold text-sm uppercase tracking-wide">Fitur PRO</span>
+            <span className="text-yellow-400 font-semibold text-sm uppercase tracking-wide">{t('Fitur PRO', 'PRO Feature')}</span>
           </div>
 
           <h2 className="text-xl font-bold text-white mb-2">
-            {feature || 'Fitur ini'} tersedia di PRO
+            {feature || t('Fitur ini', 'This feature')} {t('tersedia di PRO', 'is available on PRO')}
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            Upgrade ke PRO untuk akses penuh semua fitur manajemen keuangan — laporan lengkap, tracking investasi, hutang, aset, goals, dan budget.
+            {t('Upgrade ke PRO untuk akses penuh semua fitur manajemen keuangan — laporan lengkap, tracking investasi, hutang, aset, goals, dan budget.', 'Upgrade to PRO for full access to every finance feature: complete reports, investment tracking, debts, assets, goals, and budgets.')}
           </p>
 
           <Link
             href="/dashboard/upgrade"
             className="block w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-yellow-500/20"
           >
-            Upgrade ke PRO
+            {t('Upgrade ke PRO', 'Upgrade to PRO')}
           </Link>
 
           <p className="text-slate-500 text-xs mt-3">
-            Mulai dari Rp 29.000 / bulan
+            {t('Mulai dari', 'From')} {formatMoney(PRICING.proMonthly)} {t('/ bulan', '/ month')}
           </p>
         </div>
       </div>

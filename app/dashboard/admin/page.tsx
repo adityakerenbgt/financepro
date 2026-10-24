@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/auth-context';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Trash2, KeyRound, ShieldCheck, User, Pencil, Sparkles } from 'lucide-react';
+import { useLang, localeOf } from '@/app/i18n';
 
 interface AppUser {
   id: string;
@@ -16,6 +17,7 @@ interface AppUser {
 }
 
 export default function AdminPage() {
+  const { t, lang, tError } = useLang();
   const { role, loading } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -55,7 +57,7 @@ export default function AdminPage() {
 
   const handleAdd = async () => {
     setAddError('');
-    if (!addForm.username || !addForm.password) { setAddError('Username dan password wajib diisi'); return; }
+    if (!addForm.username || !addForm.password) { setAddError(t('Username dan password wajib diisi', 'Username and password are required')); return; }
     setAddLoading(true);
     try {
       const res = await fetch('/api/admin/users', {
@@ -64,7 +66,7 @@ export default function AdminPage() {
         body: JSON.stringify(addForm),
       });
       const data = await res.json();
-      if (!res.ok) { setAddError(data.error || 'Gagal menambah user'); return; }
+      if (!res.ok) { setAddError(tError(data.error || t('Gagal menambah user', 'Failed to add user'))); return; }
       setShowAdd(false);
       setAddForm({ username: '', displayName: '', password: '', role: 'USER' });
       fetchUsers();
@@ -84,7 +86,7 @@ export default function AdminPage() {
         body: JSON.stringify({ id: editUser.id, ...editForm }),
       });
       const data = await res.json();
-      if (!res.ok) { setEditError(data.error || 'Gagal update user'); return; }
+      if (!res.ok) { setEditError(tError(data.error || t('Gagal update user', 'Failed to update user'))); return; }
       setEditUser(null);
       fetchUsers();
     } finally {
@@ -93,7 +95,7 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (u: AppUser) => {
-    if (!confirm(`Hapus user "${u.username}"? Semua data user ini akan ikut terhapus.`)) return;
+    if (!confirm(t(`Hapus user "${u.username}"? Semua data user ini akan ikut terhapus.`, `Delete user "${u.username}"? All of this user's data will be deleted too.`))) return;
     await fetch('/api/admin/users', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -141,14 +143,14 @@ export default function AdminPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <p className="text-slate-400 text-sm mt-1">Kelola akun pengguna aplikasi</p>
+          <p className="text-slate-400 text-sm mt-1">{t('Kelola akun pengguna aplikasi', 'Manage application user accounts')}</p>
         </div>
         <button
           onClick={() => { setShowAdd(true); setAddError(''); }}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <UserPlus className="w-4 h-4" />
-          Tambah User
+          {t('Tambah User', 'Add User')}
         </button>
       </div>
 
@@ -156,7 +158,7 @@ export default function AdminPage() {
       {showAdd && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 w-full max-w-md space-y-4">
-            <h2 className="text-lg font-semibold text-white">Tambah User Baru</h2>
+            <h2 className="text-lg font-semibold text-white">{t('Tambah User Baru', 'Add New User')}</h2>
             {addError && <p className="text-red-400 text-sm">{addError}</p>}
             <div className="space-y-3">
               <div>
@@ -170,12 +172,12 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Nama Lengkap</label>
+                <label className="text-sm text-slate-400 mb-1 block">{t('Nama Lengkap', 'Full Name')}</label>
                 <input
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                   value={addForm.displayName}
                   onChange={e => setAddForm(f => ({ ...f, displayName: e.target.value }))}
-                  placeholder="Nama Lengkap (opsional)"
+                  placeholder={t('Nama Lengkap (opsional)', 'Full name (optional)')}
                 />
               </div>
               <div>
@@ -206,13 +208,13 @@ export default function AdminPage() {
                 disabled={addLoading}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {addLoading ? 'Menyimpan...' : 'Simpan'}
+                {addLoading ? t('Menyimpan...', 'Saving...') : t('Simpan', 'Save')}
               </button>
               <button
                 onClick={() => setShowAdd(false)}
                 className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                Batal
+                {t('Batal', 'Cancel')}
               </button>
             </div>
           </div>
@@ -223,29 +225,29 @@ export default function AdminPage() {
       {editUser && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 w-full max-w-md space-y-4">
-            <h2 className="text-lg font-semibold text-white">Edit User: {editUser.username}</h2>
+            <h2 className="text-lg font-semibold text-white">{t('Edit User', 'Edit User')}: {editUser.username}</h2>
             {editError && <p className="text-red-400 text-sm">{editError}</p>}
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Nama Lengkap</label>
+                <label className="text-sm text-slate-400 mb-1 block">{t('Nama Lengkap', 'Full Name')}</label>
                 <input
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                   value={editForm.displayName}
                   onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))}
-                  placeholder="Nama Lengkap"
+                  placeholder={t('Nama Lengkap', 'Full name')}
                   autoFocus
                 />
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block flex items-center gap-1">
-                  <KeyRound className="w-3 h-3" /> Password Baru (kosongkan jika tidak diubah)
+                  <KeyRound className="w-3 h-3" /> {t('Password Baru (kosongkan jika tidak diubah)', 'New Password (leave blank to keep)')}
                 </label>
                 <input
                   type="password"
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                   value={editForm.password}
                   onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder="Password baru"
+                  placeholder={t('Password baru', 'New password')}
                 />
               </div>
               <div>
@@ -272,7 +274,7 @@ export default function AdminPage() {
               </div>
               {editForm.plan === 'PRO' && (
                 <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Aktif sampai</label>
+                  <label className="text-sm text-slate-400 mb-1 block">{t('Aktif sampai', 'Active until')}</label>
                   <input
                     type="date"
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
@@ -288,13 +290,13 @@ export default function AdminPage() {
                 disabled={editLoading}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {editLoading ? 'Menyimpan...' : 'Simpan'}
+                {editLoading ? t('Menyimpan...', 'Saving...') : t('Simpan', 'Save')}
               </button>
               <button
                 onClick={() => setEditUser(null)}
                 className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                Batal
+                {t('Batal', 'Cancel')}
               </button>
             </div>
           </div>
@@ -304,17 +306,17 @@ export default function AdminPage() {
       {/* User Table */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         {fetching ? (
-          <div className="p-8 text-center text-slate-400">Memuat data...</div>
+          <div className="p-8 text-center text-slate-400">{t('Memuat data...', 'Loading data...')}</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-700">
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Username</th>
-                <th className="text-left px-4 py-3 text-slate-400 font-medium">Nama</th>
+                <th className="text-left px-4 py-3 text-slate-400 font-medium">{t('Nama', 'Name')}</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Role</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Plan</th>
-                <th className="text-left px-4 py-3 text-slate-400 font-medium">Dibuat</th>
-                <th className="text-right px-4 py-3 text-slate-400 font-medium">Aksi</th>
+                <th className="text-left px-4 py-3 text-slate-400 font-medium">{t('Dibuat', 'Created')}</th>
+                <th className="text-right px-4 py-3 text-slate-400 font-medium">{t('Aksi', 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -341,7 +343,7 @@ export default function AdminPage() {
                         </span>
                         {u.planExpiresAt && (
                           <p className="text-xs text-slate-500 mt-0.5">
-                            s/d {new Date(u.planExpiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {t('s/d', 'until')} {new Date(u.planExpiresAt).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         )}
                       </div>
@@ -352,7 +354,7 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-400">
-                    {new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(u.createdAt).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -360,7 +362,7 @@ export default function AdminPage() {
                         <button
                           onClick={() => handleSetPro(u)}
                           className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/20 rounded-lg transition-colors font-medium"
-                          title="Set PRO 1 bulan"
+                          title={t('Set PRO 1 bulan', 'Set PRO for 1 month')}
                         >
                           Set PRO
                         </button>
@@ -368,9 +370,9 @@ export default function AdminPage() {
                         <button
                           onClick={() => handleSetFree(u)}
                           className="text-xs px-2 py-1 bg-slate-700 text-slate-400 border border-slate-600 hover:bg-slate-600 rounded-lg transition-colors"
-                          title="Revoke PRO"
+                          title={t('Cabut PRO', 'Revoke PRO')}
                         >
-                          Revoke
+                          {t('Cabut', 'Revoke')}
                         </button>
                       )}
                       <button
@@ -383,7 +385,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleDelete(u)}
                         className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                        title="Hapus"
+                        title={t('Hapus', 'Delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -393,7 +395,7 @@ export default function AdminPage() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">Belum ada user</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">{t('Belum ada user', 'No users yet')}</td>
                 </tr>
               )}
             </tbody>

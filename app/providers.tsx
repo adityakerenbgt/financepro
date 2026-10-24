@@ -5,6 +5,9 @@ import {
   useCallback, ReactNode,
 } from 'react';
 import { AuthProvider } from './auth-context';
+import { LanguageProvider, type Lang } from './i18n';
+import { CurrencyProvider } from './currency-context';
+import type { CurrencyCode } from '@/lib/currency';
 
 // ============================================================
 // THEME CONTEXT — dark / light mode
@@ -32,7 +35,13 @@ const ToastContext = createContext<{
 // ============================================================
 // PROVIDERS — wraps the whole app
 // ============================================================
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children, initialLang, initialCurrency,
+}: {
+  children: ReactNode;
+  initialLang: Lang;
+  initialCurrency: CurrencyCode;
+}) {
   const [theme, setTheme] = useState<Theme>('dark');
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -75,12 +84,16 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <AuthProvider>
-      <ThemeContext.Provider value={{ theme, toggleTheme }}>
-        <ToastContext.Provider value={{ toast }}>
-          {children}
-          <ToastContainer toasts={toasts} dismiss={dismiss} />
-        </ToastContext.Provider>
-      </ThemeContext.Provider>
+      <LanguageProvider initialLang={initialLang}>
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+          <ToastContext.Provider value={{ toast }}>
+            <CurrencyProvider initialCurrency={initialCurrency}>
+              {children}
+            </CurrencyProvider>
+            <ToastContainer toasts={toasts} dismiss={dismiss} />
+          </ToastContext.Provider>
+        </ThemeContext.Provider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

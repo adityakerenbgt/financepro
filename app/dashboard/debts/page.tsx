@@ -7,13 +7,15 @@ import type { DebtSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
 import { useAuth } from '../../auth-context';
 import ProGate from '../../components/ProGate';
+import { formatMoney as formatRp } from '@/lib/currency';
+import { useLang } from '@/app/i18n';
 
-function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
 interface DebtRow extends DebtSummary {}
 
 export default function DebtsPage() {
   const { plan, role } = useAuth();
+  const { t } = useLang();
   const [debts, setDebts] = useState<DebtRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'hutang' | 'piutang'>('hutang');
@@ -55,25 +57,25 @@ export default function DebtsPage() {
     try {
       const res = await fetch('/api/debts', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       if (!res.ok) throw new Error((await res.json()).error);
-      toast(activeTab === 'hutang' ? 'Utang dihapus' : 'Piutang dihapus', 'success');
+      toast(activeTab === 'hutang' ? t('Utang dihapus', 'Debt deleted') : t('Piutang dihapus', 'Receivable deleted'), 'success');
       setConfirmDeleteId(null);
       fetch_();
-    } catch (err: any) { toast(err.message || 'Gagal menghapus', 'error'); }
+    } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Hutang & Piutang</h1>
+          <h1 className="text-2xl font-bold text-white">{t('Hutang & Piutang', 'Debts & Receivables')}</h1>
           <p className="text-sm text-slate-400">
             {activeTab === 'hutang'
-              ? `Sisa utang: ${formatRp(totalHutang)}`
-              : `Piutang belum kembali: ${formatRp(totalPiutang)}`}
+              ? `${t('Sisa utang', 'Remaining debt')}: ${formatRp(totalHutang)}`
+              : `${t('Piutang belum kembali', 'Outstanding receivables')}: ${formatRp(totalPiutang)}`}
           </p>
         </div>
         <button onClick={() => { setEditData(null); setShowForm(true); }} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> {activeTab === 'hutang' ? 'Tambah Hutang' : 'Tambah Piutang'}
+          <Plus className="w-4 h-4" /> {activeTab === 'hutang' ? t('Tambah Hutang', 'Add Debt') : t('Tambah Piutang', 'Add Receivable')}
         </button>
       </div>
 
@@ -82,7 +84,7 @@ export default function DebtsPage() {
         {(['hutang', 'piutang'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-5 py-2 text-sm font-medium transition-all ${activeTab === tab ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:text-white'}`}>
-            {tab === 'hutang' ? `Hutang Saya (${hutangList.length})` : `Piutang ke Orang (${piutangList.length})`}
+            {tab === 'hutang' ? `${t('Hutang Saya', 'My Debts')} (${hutangList.length})` : `${t('Piutang ke Orang', 'Owed to Me')} (${piutangList.length})`}
           </button>
         ))}
       </div>
@@ -92,7 +94,7 @@ export default function DebtsPage() {
         <div className="flex justify-center py-10"><RefreshCw className="w-6 h-6 text-blue-400 animate-spin" /></div>
       ) : shown.length === 0 ? (
         <div className="card text-center text-slate-500 py-10">
-          {activeTab === 'hutang' ? 'Tidak ada data hutang.' : 'Tidak ada data piutang.'}
+          {activeTab === 'hutang' ? t('Tidak ada data hutang.', 'No debt records.') : t('Tidak ada data piutang.', 'No receivable records.')}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,16 +103,16 @@ export default function DebtsPage() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-white">{d.debtName}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{d.isPiutang ? 'Piutang' : d.debtType}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{d.isPiutang ? t('Piutang', 'Receivable') : d.debtType}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className={`${d.status === 'Lunas' ? 'badge-success' : d.status === 'Over Limit' ? 'badge-danger' : 'badge-warning'} mr-1`}>
-                    {d.status}
+                    {d.status === 'Lunas' ? t('Lunas', 'Paid Off') : d.status === 'Aktif' ? t('Aktif', 'Active') : d.status}
                   </span>
                   {confirmDeleteId === d.id ? (
                     <>
-                      <button onClick={() => handleDelete(d.id)} className="text-red-400 text-xs font-medium px-2 py-1 bg-red-500/10 rounded">Ya</button>
-                      <button onClick={() => setConfirmDeleteId(null)} className="text-slate-400 text-xs px-2 py-1">Tidak</button>
+                      <button onClick={() => handleDelete(d.id)} className="text-red-400 text-xs font-medium px-2 py-1 bg-red-500/10 rounded">{t('Ya', 'Yes')}</button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="text-slate-400 text-xs px-2 py-1">{t('Tidak', 'No')}</button>
                     </>
                   ) : (
                     <>
@@ -122,25 +124,25 @@ export default function DebtsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-slate-400 text-xs">{d.isPiutang ? 'Dipinjamkan' : 'Limit/Pokok'}</p>
+                  <p className="text-slate-400 text-xs">{d.isPiutang ? t('Dipinjamkan', 'Lent Out') : t('Limit/Pokok', 'Limit/Principal')}</p>
                   <p className="text-white font-medium">{formatRp(d.limitOrPrincipal)}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400 text-xs">{d.isPiutang ? 'Belum Kembali' : 'Sisa Utang'}</p>
+                  <p className="text-slate-400 text-xs">{d.isPiutang ? t('Belum Kembali', 'Outstanding') : t('Sisa Utang', 'Remaining Debt')}</p>
                   <p className={`font-medium ${d.isPiutang ? 'text-amber-400' : 'text-red-400'}`}>{formatRp(d.remainingDebt)}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400 text-xs">{d.isPiutang ? 'Total Dipinjamkan' : 'Total Belanja'}</p>
+                  <p className="text-slate-400 text-xs">{d.isPiutang ? t('Total Dipinjamkan', 'Total Lent') : t('Total Belanja', 'Total Spent')}</p>
                   <p className="text-white">{formatRp(d.totalSpent)}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400 text-xs">{d.isPiutang ? 'Sudah Kembali' : 'Total Bayar'}</p>
+                  <p className="text-slate-400 text-xs">{d.isPiutang ? t('Sudah Kembali', 'Repaid') : t('Total Bayar', 'Total Paid')}</p>
                   <p className="text-emerald-400">{formatRp(d.totalPaid)}</p>
                 </div>
               </div>
               {d.remainingLimit !== undefined && (
                 <div className="mt-3 pt-3 border-t border-slate-700">
-                  <p className="text-xs text-slate-400">Sisa Limit: <span className="text-white">{formatRp(d.remainingLimit)}</span></p>
+                  <p className="text-xs text-slate-400">{t('Sisa Limit', 'Remaining Limit')}: <span className="text-white">{formatRp(d.remainingLimit)}</span></p>
                 </div>
               )}
               <div className="mt-4 pt-3 border-t border-slate-700">
@@ -153,7 +155,7 @@ export default function DebtsPage() {
                   }}
                   className="btn-primary w-full text-xs py-2"
                 >
-                  {d.isPiutang ? 'Catat Penerimaan' : 'Catat Pembayaran'}
+                  {d.isPiutang ? t('Catat Penerimaan', 'Record Receipt') : t('Catat Pembayaran', 'Record Payment')}
                 </button>
               </div>
             </div>
@@ -191,6 +193,7 @@ function DebtForm({ onClose, onSuccess, editData, defaultIsPiutang }: {
   defaultIsPiutang?: boolean;
 }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const [form, setForm] = useState({
     debtType: editData?.debtType ?? 'Revolving',
     debtName: editData?.debtName ?? '',
@@ -213,13 +216,13 @@ function DebtForm({ onClose, onSuccess, editData, defaultIsPiutang }: {
       const res = await fetch('/api/debts', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error((await res.json()).error);
       toast(editData
-        ? (form.isPiutang ? 'Piutang berhasil diupdate!' : 'Utang berhasil diupdate!')
-        : (form.isPiutang ? 'Piutang berhasil ditambahkan!' : 'Utang berhasil ditambahkan!'),
+        ? (form.isPiutang ? t('Piutang berhasil diupdate!', 'Receivable updated!') : t('Utang berhasil diupdate!', 'Debt updated!'))
+        : (form.isPiutang ? t('Piutang berhasil ditambahkan!', 'Receivable added!') : t('Utang berhasil ditambahkan!', 'Debt added!')),
         'success');
       onSuccess();
     } catch (err: any) {
       setError(err.message);
-      toast(err.message || 'Gagal menyimpan', 'error');
+      toast(err.message || t('Gagal menyimpan', 'Failed to save'), 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -227,15 +230,15 @@ function DebtForm({ onClose, onSuccess, editData, defaultIsPiutang }: {
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-white">{editData ? 'Edit' : 'Tambah'} {form.isPiutang ? 'Piutang' : 'Hutang'}</h2>
+          <h2 className="text-lg font-bold text-white">{editData ? 'Edit' : t('Tambah', 'Add')} {form.isPiutang ? t('Piutang', 'Receivable') : t('Hutang', 'Debt')}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Hutang vs Piutang toggle */}
           <div>
-            <label className="form-label">Saya sebagai</label>
+            <label className="form-label">{t('Saya sebagai', 'I am the')}</label>
             <div className="flex rounded-lg overflow-hidden border border-slate-600">
-              {[{ value: false, label: 'Peminjam (Hutang)' }, { value: true, label: 'Pemberi Pinjaman (Piutang)' }].map(opt => (
+              {[{ value: false, label: t('Peminjam (Hutang)', 'Borrower (Debt)') }, { value: true, label: t('Pemberi Pinjaman (Piutang)', 'Lender (Receivable)') }].map(opt => (
                 <button key={String(opt.value)} type="button"
                   onClick={() => setForm({ ...form, isPiutang: opt.value })}
                   disabled={!!editData}
@@ -250,36 +253,36 @@ function DebtForm({ onClose, onSuccess, editData, defaultIsPiutang }: {
 
           {!form.isPiutang && (
             <div>
-              <label className="form-label">Jenis Hutang</label>
+              <label className="form-label">{t('Jenis Hutang', 'Debt Type')}</label>
               <div className="flex rounded-lg overflow-hidden border border-slate-600">
-                {[{ value: 'Revolving', label: 'Revolving (CC/Paylater)' }, { value: 'Fixed', label: 'Fixed (KPR/KKB/KUR)' }].map(t => (
-                  <button key={t.value} type="button" onClick={() => setForm({ ...form, debtType: t.value })}
+                {[{ value: 'Revolving', label: t('Revolving (CC/Paylater)', 'Revolving (Credit Card/Paylater)') }, { value: 'Fixed', label: t('Fixed (KPR/KKB/KUR)', 'Fixed (Mortgage/Auto/Business loan)') }].map(ty => (
+                  <button key={ty.value} type="button" onClick={() => setForm({ ...form, debtType: ty.value })}
                     className={`flex-1 py-2.5 text-xs font-medium transition-all ${
-                      form.debtType === t.value
-                        ? t.value === 'Revolving' ? 'bg-amber-600 text-white' : 'bg-violet-600 text-white'
+                      form.debtType === ty.value
+                        ? ty.value === 'Revolving' ? 'bg-amber-600 text-white' : 'bg-violet-600 text-white'
                         : 'bg-slate-700 text-slate-400 hover:text-slate-200'
-                    }`}>{t.label}</button>
+                    }`}>{ty.label}</button>
                 ))}
               </div>
             </div>
           )}
 
           <div>
-            <label className="form-label">{form.isPiutang ? 'Nama Peminjam / Keterangan' : 'Nama Hutang'}</label>
+            <label className="form-label">{form.isPiutang ? t('Nama Peminjam / Keterangan', 'Borrower Name / Description') : t('Nama Hutang', 'Debt Name')}</label>
             <input type="text" value={form.debtName} onChange={e => setForm({ ...form, debtName: e.target.value })}
               className="input-field w-full text-sm"
-              placeholder={form.isPiutang ? 'Budi, Proyek ABC...' : 'BCA Card, Shopee Paylater...'}
+              placeholder={form.isPiutang ? t('Budi, Proyek ABC...', 'John, Project ABC...') : t('BCA Card, Shopee Paylater...', 'Credit card, Paylater...')}
               required />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="form-label">{form.isPiutang ? 'Jumlah Dipinjamkan' : (form.debtType === 'Revolving' ? 'Limit' : 'Pokok Pinjaman')}</label>
+              <label className="form-label">{form.isPiutang ? t('Jumlah Dipinjamkan', 'Amount Lent') : (form.debtType === 'Revolving' ? 'Limit' : t('Pokok Pinjaman', 'Loan Principal'))}</label>
               <RpInput value={form.limitOrPrincipal} onChange={v => setForm({ ...form, limitOrPrincipal: v })} required />
             </div>
             {!form.isPiutang && (
               <div>
-                <label className="form-label">Bunga (%/tahun)</label>
+                <label className="form-label">{t('Bunga (%/tahun)', 'Interest (%/year)')}</label>
                 <input type="number" step="0.01" value={form.interestRate} onChange={e => setForm({ ...form, interestRate: e.target.value })} className="input-field w-full text-sm" placeholder="0" />
               </div>
             )}
@@ -288,30 +291,30 @@ function DebtForm({ onClose, onSuccess, editData, defaultIsPiutang }: {
           {!form.isPiutang && form.debtType === 'Fixed' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Tenor (bulan)</label>
+                <label className="form-label">{t('Tenor (bulan)', 'Tenor (months)')}</label>
                 <input type="number" value={form.tenor} onChange={e => setForm({ ...form, tenor: e.target.value })} className="input-field w-full text-sm" placeholder="12" />
               </div>
               <div>
-                <label className="form-label">Cicilan/bulan</label>
+                <label className="form-label">{t('Cicilan/bulan', 'Installment/month')}</label>
                 <RpInput value={form.monthlyPayment} onChange={v => setForm({ ...form, monthlyPayment: v })} />
               </div>
             </div>
           )}
 
           <div>
-            <label className="form-label">Tanggal Mulai</label>
+            <label className="form-label">{t('Tanggal Mulai', 'Start Date')}</label>
             <input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} className="input-field w-full text-sm" />
           </div>
 
           {form.isPiutang && form.debtName && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-300">
-              Kategori <strong>"{form.debtName}"</strong> otomatis dibuat. Gunakan tombol <strong>"Catat Penerimaan"</strong> di kartu piutang untuk mencatat pelunasan.
+              {t('Kategori', 'Category')} <strong>"{form.debtName}"</strong> {t('otomatis dibuat. Gunakan tombol', 'is created automatically. Use the')} <strong>"{t('Catat Penerimaan', 'Record Receipt')}"</strong> {t('di kartu piutang untuk mencatat pelunasan.', 'button on the receivable card to record repayments.')}
             </div>
           )}
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button type="submit" disabled={submitting} className="btn-primary w-full">
-            {submitting ? 'Menyimpan...' : editData ? 'Update' : (form.isPiutang ? 'Simpan Piutang' : 'Simpan Hutang')}
+            {submitting ? t('Menyimpan...', 'Saving...') : editData ? t('Update', 'Update') : (form.isPiutang ? t('Simpan Piutang', 'Save Receivable') : t('Simpan Hutang', 'Save Debt'))}
           </button>
         </form>
       </div>
@@ -335,6 +338,7 @@ function PaymentForm({
   onSuccess: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const [form, setForm] = useState({
     amount: '',
     date: new Date().toISOString().split('T')[0],
@@ -347,7 +351,7 @@ function PaymentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.amount || !form.accountId) {
-      setError('Jumlah dan rekening harus diisi');
+      setError(t('Jumlah dan rekening harus diisi', 'Amount and account are required'));
       return;
     }
     setError(''); setSubmitting(true);
@@ -366,11 +370,11 @@ function PaymentForm({
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      toast(isPiutang ? 'Penerimaan tercatat' : 'Pembayaran tercatat', 'success');
+      toast(isPiutang ? t('Penerimaan tercatat', 'Receipt recorded') : t('Pembayaran tercatat', 'Payment recorded'), 'success');
       onSuccess();
     } catch (err: any) {
       setError(err.message);
-      toast(err.message || 'Gagal mencatat', 'error');
+      toast(err.message || t('Gagal mencatat', 'Failed to record'), 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -378,24 +382,24 @@ function PaymentForm({
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-white">{isPiutang ? 'Catat Penerimaan' : 'Catat Pembayaran'}</h2>
+          <h2 className="text-lg font-bold text-white">{isPiutang ? t('Catat Penerimaan', 'Record Receipt') : t('Catat Pembayaran', 'Record Payment')}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="form-label">{isPiutang ? 'Dari' : 'Untuk'}: {debtName}</label>
-            <p className="text-slate-400 text-xs">{isPiutang ? 'Penerimaan dari peminjam' : 'Pembayaran utang'}</p>
+            <label className="form-label">{isPiutang ? t('Dari', 'From') : t('Untuk', 'To')}: {debtName}</label>
+            <p className="text-slate-400 text-xs">{isPiutang ? t('Penerimaan dari peminjam', 'Receipt from borrower') : t('Pembayaran utang', 'Debt payment')}</p>
           </div>
 
           <div>
-            <label className="form-label">Rekening</label>
+            <label className="form-label">{t('Rekening', 'Account')}</label>
             <select
               value={form.accountId}
               onChange={e => setForm({ ...form, accountId: e.target.value })}
               className="input-field w-full text-sm"
               required
             >
-              <option value="">Pilih rekening...</option>
+              <option value="">{t('Pilih rekening...', 'Select an account...')}</option>
               {accounts.map(acc => (
                 <option key={acc.id} value={acc.id}>
                   {acc.name} ({formatRp(acc.balance)})
@@ -405,7 +409,7 @@ function PaymentForm({
           </div>
 
           <div>
-            <label className="form-label">Jumlah</label>
+            <label className="form-label">{t('Jumlah', 'Amount')}</label>
             <RpInput
               value={form.amount}
               onChange={v => setForm({ ...form, amount: v })}
@@ -415,7 +419,7 @@ function PaymentForm({
           </div>
 
           <div>
-            <label className="form-label">Tanggal</label>
+            <label className="form-label">{t('Tanggal', 'Date')}</label>
             <input
               type="date"
               value={form.date}
@@ -426,19 +430,19 @@ function PaymentForm({
           </div>
 
           <div>
-            <label className="form-label">Keterangan (opsional)</label>
+            <label className="form-label">{t('Keterangan (opsional)', 'Description (optional)')}</label>
             <input
               type="text"
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
               className="input-field w-full text-sm"
-              placeholder="Pembayaran cicilan, dll..."
+              placeholder={t('Pembayaran cicilan, dll...', 'Installment payment, etc...')}
             />
           </div>
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button type="submit" disabled={submitting} className="btn-primary w-full">
-            {submitting ? 'Menyimpan...' : 'Catat'}
+            {submitting ? t('Menyimpan...', 'Saving...') : t('Catat', 'Record')}
           </button>
         </form>
       </div>

@@ -4,13 +4,19 @@ import { useState, useEffect } from 'react';
 import { Save, RefreshCw, User, Tag, CreditCard, Edit2, Trash2, Plus, X } from 'lucide-react';
 import { RpInput } from '../../components/RpInput';
 import { useToast } from '../../providers';
+import { formatMoney as formatRp } from '@/lib/currency';
+import { useLang } from '@/app/i18n';
+import { useCurrency } from '@/app/currency-context';
+import CurrencySwitcher from '../../components/CurrencySwitcher';
+import { accountTypeLabel } from '@/lib/labels';
 
-function formatRp(n: number) { return `Rp${Math.round(n).toLocaleString('id-ID')}`; }
 
 const ACC_TYPES = ['bank', 'cash', 'ewallet', 'credit_card', 'paylater'];
 const CAT_TYPES = ['income', 'expense', 'both'];
 
 export default function SettingsPage() {
+  const { t, lang } = useLang();
+  const { currency: displayCurrency } = useCurrency();
   const [profile, setProfile] = useState({ name: '', currency: 'IDR', targetSavings: '', targetExpense: '' });
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -66,10 +72,10 @@ export default function SettingsPage() {
       await fetch('/api/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'profile', ...profile }),
+        body: JSON.stringify({ type: 'profile', ...profile, currency: displayCurrency }),
       });
       setSaved(true);
-      toast('Profil berhasil disimpan', 'success');
+      toast(t('Profil berhasil disimpan', 'Profile saved'), 'success');
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
       toast(err.message || 'Gagal menyimpan', 'error');
@@ -91,7 +97,7 @@ export default function SettingsPage() {
 
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) {
-      toast('Nama kategori tidak boleh kosong', 'error');
+      toast(t('Nama kategori tidak boleh kosong', 'Category name cannot be empty'), 'error');
       return;
     }
     setCatSubmitting(true);
@@ -111,10 +117,10 @@ export default function SettingsPage() {
 
       if (catModalMode === 'add') {
         setCategories(prev => [...prev, updated]);
-        toast('Kategori berhasil ditambahkan', 'success');
+        toast(t('Kategori berhasil ditambahkan', 'Category added'), 'success');
       } else {
         setCategories(prev => prev.map(c => c.id === catForm.id ? updated : c));
-        toast('Kategori berhasil diupdate', 'success');
+        toast(t('Kategori berhasil diupdate', 'Category updated'), 'success');
       }
       setShowCatModal(false);
     } catch (err: any) {
@@ -137,7 +143,7 @@ export default function SettingsPage() {
 
   const handleSaveAccount = async () => {
     if (!accForm.name.trim()) {
-      toast('Nama rekening tidak boleh kosong', 'error');
+      toast(t('Nama rekening tidak boleh kosong', 'Account name cannot be empty'), 'error');
       return;
     }
     setAccSubmitting(true);
@@ -157,10 +163,10 @@ export default function SettingsPage() {
 
       if (accModalMode === 'add') {
         setAccounts(prev => [...prev, updated]);
-        toast('Rekening berhasil ditambahkan', 'success');
+        toast(t('Rekening berhasil ditambahkan', 'Account added'), 'success');
       } else {
         setAccounts(prev => prev.map(a => a.id === accForm.id ? updated : a));
-        toast('Rekening berhasil diupdate', 'success');
+        toast(t('Rekening berhasil diupdate', 'Account updated'), 'success');
       }
       setShowAccModal(false);
     } catch (err: any) {
@@ -189,14 +195,14 @@ export default function SettingsPage() {
 
       if (deleteType === 'cat') {
         setCategories(prev => prev.filter(c => c.id !== deleteId));
-        toast('Kategori berhasil dihapus', 'success');
+        toast(t('Kategori berhasil dihapus', 'Category deleted'), 'success');
       } else {
         setAccounts(prev => prev.filter(a => a.id !== deleteId));
-        toast('Rekening berhasil dihapus', 'success');
+        toast(t('Rekening berhasil dihapus', 'Account deleted'), 'success');
       }
       setDeleteModalOpen(false);
     } catch (err: any) {
-      toast(err.message || 'Gagal menghapus', 'error');
+      toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error');
     } finally { setDeleteSubmitting(false); }
   };
 
@@ -206,41 +212,36 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <h1 className="text-2xl font-bold text-white">Pengaturan</h1>
+      <h1 className="text-2xl font-bold text-white">{t('Pengaturan', 'Settings')}</h1>
 
       {/* Profile */}
       <div className="card space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <User className="w-5 h-5 text-blue-400" />
-          <h2 className="font-semibold text-white">Profil Pengguna</h2>
+          <h2 className="font-semibold text-white">{t('Profil Pengguna', 'User Profile')}</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="form-label">Nama</label>
+            <label className="form-label">{t('Nama', 'Name')}</label>
             <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})}
-              className="input-field w-full text-sm" placeholder="Nama Anda" />
+              className="input-field w-full text-sm" placeholder={t('Nama Anda', 'Your name')} />
           </div>
           <div>
-            <label className="form-label">Mata Uang</label>
-            <select value={profile.currency} onChange={e => setProfile({...profile, currency: e.target.value})}
-              className="input-field w-full text-sm">
-              <option value="IDR">IDR (Rupiah)</option>
-              <option value="USD">USD (Dollar)</option>
-              <option value="SGD">SGD (Singapore Dollar)</option>
-            </select>
+            <label className="form-label">{t('Mata Uang Tampilan', 'Display Currency')}</label>
+            <CurrencySwitcher />
           </div>
           <div>
-            <label className="form-label">Target Tabungan/Bulan</label>
+            <label className="form-label">{t('Target Tabungan/Bulan', 'Monthly Savings Target')} <span className="text-slate-500 font-normal">({t('dalam Rupiah', 'in Rupiah')})</span></label>
             <RpInput value={profile.targetSavings} onChange={v => setProfile({...profile, targetSavings: v})} placeholder="5.000.000" />
           </div>
           <div>
-            <label className="form-label">Target Pengeluaran/Bulan</label>
+            <label className="form-label">{t('Target Pengeluaran/Bulan', 'Monthly Spending Target')} <span className="text-slate-500 font-normal">({t('dalam Rupiah', 'in Rupiah')})</span></label>
             <RpInput value={profile.targetExpense} onChange={v => setProfile({...profile, targetExpense: v})} placeholder="10.000.000" />
           </div>
         </div>
         <button onClick={handleSaveProfile} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />
-          {saving ? 'Menyimpan...' : saved ? '✓ Tersimpan!' : 'Simpan Profil'}
+          {saving ? t('Menyimpan...', 'Saving...') : saved ? t('✓ Tersimpan!', '✓ Saved!') : t('Simpan Profil', 'Save Profile')}
         </button>
       </div>
 
@@ -249,33 +250,33 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Tag className="w-5 h-5 text-emerald-400" />
-            <h2 className="font-semibold text-white">Kategori Transaksi</h2>
+            <h2 className="font-semibold text-white">{t('Kategori Transaksi', 'Transaction Categories')}</h2>
             <span className="text-xs text-slate-400">({categories.length})</span>
           </div>
           <button onClick={openAddCatModal} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
-            <Plus className="w-3 h-3" /> Tambah
+            <Plus className="w-3 h-3" /> {t('Tambah', 'Add')}
           </button>
         </div>
 
         {categories.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-6">Belum ada kategori. Klik tombol Tambah untuk memulai.</p>
+          <p className="text-slate-400 text-sm text-center py-6">{t('Belum ada kategori. Klik tombol Tambah untuk memulai.', 'No categories yet. Click Add to get started.')}</p>
         ) : (
           <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
             {categories.map(cat => (
               <div key={cat.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
                 <div>
                   <p className="text-sm text-white font-medium">{cat.name}</p>
-                  <p className="text-xs text-slate-400">{cat.type === 'income' ? 'Masuk' : cat.type === 'expense' ? 'Keluar' : 'Semua'} • {cat._count?.transactions || 0} transaksi</p>
+                  <p className="text-xs text-slate-400">{cat.type === 'income' ? t('Masuk', 'Income') : cat.type === 'expense' ? t('Keluar', 'Expense') : t('Semua', 'All')} • {cat._count?.transactions || 0} {t('transaksi', 'transactions')}</p>
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => openEditCatModal(cat)}
                     className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
-                    title="Edit kategori">
+                    title={t('Edit kategori', 'Edit category')}>
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => openDeleteModal('cat', cat.id)}
                     className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                    title="Hapus kategori">
+                    title={t('Hapus kategori', 'Delete category')}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -290,35 +291,35 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-violet-400" />
-            <h2 className="font-semibold text-white">Rekening & Sumber Dana</h2>
+            <h2 className="font-semibold text-white">{t('Rekening & Sumber Dana', 'Accounts & Funding Sources')}</h2>
             <span className="text-xs text-slate-400">({accounts.length})</span>
           </div>
           <button onClick={openAddAccModal} className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
-            <Plus className="w-3 h-3" /> Tambah
+            <Plus className="w-3 h-3" /> {t('Tambah', 'Add')}
           </button>
         </div>
 
         {accounts.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-6">Belum ada rekening. Klik tombol Tambah untuk memulai.</p>
+          <p className="text-slate-400 text-sm text-center py-6">{t('Belum ada rekening. Klik tombol Tambah untuk memulai.', 'No accounts yet. Click Add to get started.')}</p>
         ) : (
           <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
             {accounts.map(acc => (
               <div key={acc.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
                 <div>
                   <p className="text-sm text-white font-medium">{acc.name}</p>
-                  <p className="text-xs text-slate-400">{acc.type}</p>
+                  <p className="text-xs text-slate-400">{accountTypeLabel(acc.type, lang)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-medium text-emerald-400">{formatRp(acc.balance)}</p>
                   <div className="flex gap-1">
                     <button onClick={() => openEditAccModal(acc)}
                       className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
-                      title="Edit rekening">
+                      title={t('Edit rekening', 'Edit account')}>
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={() => openDeleteModal('acc', acc.id)}
                       className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                      title="Hapus rekening">
+                      title={t('Hapus rekening', 'Delete account')}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -354,7 +355,7 @@ export default function SettingsPage() {
 
       {deleteModalOpen && (
         <DeleteConfirmModal
-          type={deleteType === 'cat' ? 'kategori' : 'rekening'}
+          type={deleteType === 'cat' ? t('kategori', 'category') : t('rekening', 'account')}
           itemName={deleteType === 'cat'
             ? categories.find(c => c.id === deleteId)?.name
             : accounts.find(a => a.id === deleteId)?.name}
@@ -377,32 +378,33 @@ function CategoryModal({ mode, form, onFormChange, onSubmit, onClose, submitting
   onClose: () => void;
   submitting: boolean;
 }) {
+  const { t } = useLang();
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white">{mode === 'add' ? 'Tambah Kategori' : 'Edit Kategori'}</h2>
+          <h2 className="text-lg font-bold text-white">{mode === 'add' ? t('Tambah Kategori', 'Add Category') : t('Edit Kategori', 'Edit Category')}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="form-label">Nama Kategori</label>
+            <label className="form-label">{t('Nama Kategori', 'Category Name')}</label>
             <input type="text" value={form.name} onChange={e => onFormChange({...form, name: e.target.value})}
-              className="input-field w-full text-sm" placeholder="Makan, Transportasi, Gaji..." autoFocus />
+              className="input-field w-full text-sm" placeholder={t('Makan, Transportasi, Gaji...', 'Food, Transport, Salary...')} autoFocus />
           </div>
           <div>
-            <label className="form-label">Tipe</label>
+            <label className="form-label">{t('Tipe', 'Type')}</label>
             <select value={form.type} onChange={e => onFormChange({...form, type: e.target.value})} className="input-field w-full text-sm">
-              <option value="expense">Pengeluaran</option>
-              <option value="income">Pemasukan</option>
-              <option value="both">Keduanya</option>
+              <option value="expense">{t('Pengeluaran', 'Expense')}</option>
+              <option value="income">{t('Pemasukan', 'Income')}</option>
+              <option value="both">{t('Keduanya', 'Both')}</option>
             </select>
           </div>
           <div className="flex gap-2 pt-2">
             <button onClick={onSubmit} disabled={submitting} className="btn-primary flex-1">
-              {submitting ? 'Menyimpan...' : 'Simpan'}
+              {submitting ? t('Menyimpan...', 'Saving...') : t('Simpan', 'Save')}
             </button>
-            <button onClick={onClose} className="btn-secondary flex-1">Batal</button>
+            <button onClick={onClose} className="btn-secondary flex-1">{t('Batal', 'Cancel')}</button>
           </div>
         </div>
       </div>
@@ -418,38 +420,39 @@ function AccountModal({ mode, form, onFormChange, onSubmit, onClose, submitting 
   onClose: () => void;
   submitting: boolean;
 }) {
+  const { t, lang } = useLang();
   const ACC_TYPES = ['bank', 'cash', 'ewallet', 'credit_card', 'paylater'];
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white">{mode === 'add' ? 'Tambah Rekening' : 'Edit Rekening'}</h2>
+          <h2 className="text-lg font-bold text-white">{mode === 'add' ? t('Tambah Rekening', 'Add Account') : t('Edit Rekening', 'Edit Account')}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="form-label">Nama Rekening</label>
+            <label className="form-label">{t('Nama Rekening', 'Account Name')}</label>
             <input type="text" value={form.name} onChange={e => onFormChange({...form, name: e.target.value})}
-              className="input-field w-full text-sm" placeholder="BCA, GoPay, Tunai..." autoFocus />
+              className="input-field w-full text-sm" placeholder={t('BCA, GoPay, Tunai...', 'Bank, E-wallet, Cash...')} autoFocus />
           </div>
           <div>
-            <label className="form-label">Tipe</label>
+            <label className="form-label">{t('Tipe', 'Type')}</label>
             <select value={form.type} onChange={e => onFormChange({...form, type: e.target.value})} className="input-field w-full text-sm">
-              {ACC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              {ACC_TYPES.map(at => <option key={at} value={at}>{accountTypeLabel(at, lang)}</option>)}
             </select>
           </div>
           {mode === 'add' && (
             <div>
-              <label className="form-label">Saldo Awal (opsional)</label>
+              <label className="form-label">{t('Saldo Awal (opsional)', 'Initial Balance (optional)')} <span className="text-slate-500 font-normal">({t('dalam Rupiah', 'in Rupiah')})</span></label>
               <RpInput value={form.initialBalance} onChange={v => onFormChange({...form, initialBalance: v})} placeholder="0" />
             </div>
           )}
           <div className="flex gap-2 pt-2">
             <button onClick={onSubmit} disabled={submitting} className="btn-primary flex-1">
-              {submitting ? 'Menyimpan...' : 'Simpan'}
+              {submitting ? t('Menyimpan...', 'Saving...') : t('Simpan', 'Save')}
             </button>
-            <button onClick={onClose} className="btn-secondary flex-1">Batal</button>
+            <button onClick={onClose} className="btn-secondary flex-1">{t('Batal', 'Cancel')}</button>
           </div>
         </div>
       </div>
@@ -466,18 +469,19 @@ function DeleteConfirmModal({ type, itemName, confirmed, onConfirmedChange, onCo
   onCancel: () => void;
   submitting: boolean;
 }) {
+  const { t } = useLang();
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-sm p-6">
-        <h2 className="text-lg font-bold text-white mb-2">Hapus {type}?</h2>
+        <h2 className="text-lg font-bold text-white mb-2">{t('Hapus', 'Delete')} {type}?</h2>
         <p className="text-slate-300 text-sm mb-4">
-          Anda akan menghapus <strong>{itemName}</strong>. Tindakan ini tidak bisa dibatalkan.
+          {t('Anda akan menghapus', 'You are about to delete')} <strong>{itemName}</strong>. {t('Tindakan ini tidak bisa dibatalkan.', 'This action cannot be undone.')}
         </p>
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={confirmed} onChange={e => onConfirmedChange(e.target.checked)}
               className="rounded border-slate-600" />
-            <span className="text-sm text-red-300">Saya yakin ingin menghapus</span>
+            <span className="text-sm text-red-300">{t('Saya yakin ingin menghapus', 'I am sure I want to delete this')}</span>
           </label>
         </div>
         <div className="flex gap-2">
@@ -487,9 +491,9 @@ function DeleteConfirmModal({ type, itemName, confirmed, onConfirmedChange, onCo
                 ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'bg-slate-700 text-slate-400 cursor-not-allowed'
             }`}>
-            {submitting ? 'Menghapus...' : 'Hapus'}
+            {submitting ? t('Menghapus...', 'Deleting...') : t('Hapus', 'Delete')}
           </button>
-          <button onClick={onCancel} className="btn-secondary flex-1">Batal</button>
+          <button onClick={onCancel} className="btn-secondary flex-1">{t('Batal', 'Cancel')}</button>
         </div>
       </div>
     </div>

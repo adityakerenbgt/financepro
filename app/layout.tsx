@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { cookies } from 'next/headers';
 import { Providers } from './providers';
+import { DEFAULT_CURRENCY, isSupportedCurrency } from '@/lib/currency';
 
 export const metadata: Metadata = {
   title: 'FinancePro — Personal Finance Manager',
@@ -20,8 +22,13 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const jar = cookies();
+  const lang = jar.get('fp-lang')?.value === 'en' ? 'en' : 'id';
+  const cur = jar.get('fp-currency')?.value;
+  const currency = isSupportedCurrency(cur) ? cur : DEFAULT_CURRENCY;
+
   return (
-    <html lang="id" className="dark">
+    <html lang={lang} className="dark">
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -31,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="antialiased">
-        <Providers>
+        <Providers initialLang={lang} initialCurrency={currency}>
           {children}
         </Providers>
       </body>
