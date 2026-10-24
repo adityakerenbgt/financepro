@@ -32,3 +32,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Kredensial akun demo (dibuat oleh npm run db:seed-demo)
+.demo-credentials.txt
