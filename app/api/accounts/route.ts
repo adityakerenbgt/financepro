@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { assertCanCreateAccount, planLimitResponse } from '@/lib/planLimits';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -30,6 +31,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(results);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -42,11 +45,14 @@ export async function POST(req: NextRequest) {
     const { name, type, initialBalance } = await req.json();
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
+    await assertCanCreateAccount(user.userId);
     const account = await prisma.account.create({
       data: { userId: user.userId, name: name.trim(), type: type || 'bank', balance: parseFloat(initialBalance || '0') },
     });
     return NextResponse.json(account, { status: 201 });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     if (error.code === 'P2002') return NextResponse.json({ error: 'Nama rekening sudah ada' }, { status: 400 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -60,14 +66,14 @@ export async function PATCH(req: NextRequest) {
     const { id, balance, name, type, notes } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
+    const existing = await prisma.account.findFirst({ where: { id, userId: user.userId }, select: { balance: true, adjustments: true } });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
     let adjustments: any[] = [];
     if (balance !== undefined && notes !== undefined) {
-      const existing = await prisma.account.findFirst({ where: { id, userId: user.userId }, select: { balance: true, adjustments: true } });
-      if (existing) {
-        adjustments = Array.isArray(existing.adjustments) ? existing.adjustments : [];
-        if (balance !== existing.balance) {
-          adjustments.push({ date: new Date().toISOString(), oldBalance: existing.balance, newBalance: balance, amount: balance - existing.balance, notes: notes || '' });
-        }
+      adjustments = Array.isArray(existing.adjustments) ? existing.adjustments : [];
+      if (balance !== existing.balance) {
+        adjustments.push({ date: new Date().toISOString(), oldBalance: existing.balance, newBalance: balance, amount: balance - existing.balance, notes: notes || '' });
       }
     }
 
@@ -77,6 +83,8 @@ export async function PATCH(req: NextRequest) {
     });
     return NextResponse.json(account);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     if (error.code === 'P2002') return NextResponse.json({ error: 'Nama rekening sudah ada' }, { status: 400 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -90,12 +98,17 @@ export async function DELETE(req: NextRequest) {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
+    const existing = await prisma.account.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
     const txCount = await prisma.transaction.count({ where: { accountId: id, userId: user.userId } });
     if (txCount > 0) return NextResponse.json({ error: `Rekening tidak bisa dihapus karena memiliki ${txCount} transaksi` }, { status: 400 });
 
     await prisma.account.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { getEffectivePlan } from '@/lib/plan';
+import { rateLimit, resetRateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-env';
+const LOGIN_LIMIT = 5;
+const LOGIN_WINDOW_SEC = 15 * 60;
+
+import { JWT_SECRET } from '@/lib/env';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +17,14 @@ export async function POST(req: NextRequest) {
     if (!username || !password) {
       return NextResponse.json({ error: 'Username dan password harus diisi' }, { status: 400 });
     }
+
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 });
+    }
+
+    const rlKey = `${getClientIp(req)}:${username.toLowerCase()}`;
+    const rl = await rateLimit('login', rlKey, LOGIN_LIMIT, LOGIN_WINDOW_SEC);
+    if (!rl.success) return tooManyRequests(rl.retryAfter);
 
     const user = await prisma.user.findUnique({ where: { username } });
 
@@ -25,13 +38,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 });
     }
 
+    await resetRateLimit('login', rlKey, LOGIN_LIMIT, LOGIN_WINDOW_SEC);
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
 
     const token = jwt.sign(
-      { userId: user.id, username: user.username, role: user.role, plan: user.plan },
+      { userId: user.id, username: user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -40,7 +55,7 @@ export async function POST(req: NextRequest) {
       success: true,
       username: user.username,
       role: user.role,
-      plan: user.plan,
+      plan: getEffectivePlan(user),
     }, { status: 200 });
 
     response.cookies.set('auth-token', token, {
@@ -52,7 +67,8 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('[login]', error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

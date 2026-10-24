@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSavingsInvestment, getSavingsInvestments } from '@/lib/services';
-import { getUserFromRequest } from '@/lib/auth';
+import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getOrCreateAccount, planLimitResponse } from '@/lib/planLimits';
 import { parseDate } from '@/lib/utils';
 import { SavingsType } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { searchParams } = new URL(req.url);
     const items = await getSavingsInvestments(user.userId, {
       startDate: searchParams.get('startDate') || undefined,
@@ -18,14 +20,17 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(items);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const body = await req.json();
     const { date, assetType, instrumentName, transactionType, nominal, pricePerUnit, account, notes } = body;
     if (!date || !assetType || !instrumentName || !transactionType || !nominal || !account) {
@@ -34,21 +39,23 @@ export async function POST(req: NextRequest) {
     const item = await createSavingsInvestment(user.userId, { date, assetType, instrumentName, transactionType, nominal: parseFloat(nominal), pricePerUnit: pricePerUnit ? parseFloat(pricePerUnit) : undefined, account, notes });
     return NextResponse.json(item, { status: 201 });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const body = await req.json();
     const { id, date, assetType, instrumentName, transactionType, nominal, pricePerUnit, account, notes } = body;
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.savingsInvestment.findFirst({ where: { id, userId: user.userId } });
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    let acc = await prisma.account.findUnique({ where: { userId_name: { userId: user.userId, name: account } } });
-    if (!acc) acc = await prisma.account.create({ data: { userId: user.userId, name: account } });
+    const acc = await getOrCreateAccount(user.userId, account);
     const newNominal = parseFloat(nominal);
     const pp = pricePerUnit ? parseFloat(pricePerUnit) : null;
     const item = await prisma.savingsInvestment.update({
@@ -58,14 +65,17 @@ export async function PATCH(req: NextRequest) {
     });
     return NextResponse.json(item);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.savingsInvestment.findFirst({ where: { id, userId: user.userId } });
@@ -73,6 +83,8 @@ export async function DELETE(req: NextRequest) {
     await prisma.savingsInvestment.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

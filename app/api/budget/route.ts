@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBudgetSummaries } from '@/lib/services';
-import { getUserFromRequest } from '@/lib/auth';
+import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month') || undefined;
     const summaries = await getBudgetSummaries(user.userId, month);
@@ -18,8 +19,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { month, category, amount } = await req.json();
     if (!month || !category || amount === undefined) return NextResponse.json({ error: 'month, category, and amount are required' }, { status: 400 });
     let cat = await prisma.category.findUnique({ where: { userId_name: { userId: user.userId, name: category } } });
@@ -38,8 +40,9 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { id, amount } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.budget.findFirst({ where: { id, userId: user.userId } });
@@ -53,8 +56,9 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.budget.findFirst({ where: { id, userId: user.userId } });

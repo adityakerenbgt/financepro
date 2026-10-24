@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-env';
+import { JWT_SECRET } from '@/lib/env';
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
-const PUBLIC_ROUTES = ['/login', '/api/auth/login', '/api/auth/verify', '/api/auth/seed'];
+const PUBLIC_ROUTES = ['/login', '/api/auth/login', '/api/auth/verify'];
 const PROTECTED_ROUTES = ['/dashboard', '/transactions'];
 
 async function verifyToken(token: string): Promise<boolean> {

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAssetSummaries } from '@/lib/services';
-import { getUserFromRequest } from '@/lib/auth';
+import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const assets = await getAssetSummaries(user.userId);
     return NextResponse.json(assets);
   } catch (error: any) {
@@ -17,8 +18,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { assetType, instrumentName, initialCapital, currentValue, startDate } = await req.json();
     if (!assetType || !instrumentName) return NextResponse.json({ error: 'assetType and instrumentName are required' }, { status: 400 });
     const asset = await prisma.asset.upsert({
@@ -34,8 +36,9 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const body = await req.json();
     const { id } = body;
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
@@ -54,8 +57,9 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.asset.findFirst({ where: { id, userId: user.userId } });

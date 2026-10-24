@@ -9,6 +9,7 @@ import type {
   BudgetSummary, GoalSummary, DashboardData,
 } from '@/types';
 import { startOfDay, endOfDay } from 'date-fns';
+import { getOrCreateAccount } from './planLimits';
 
 // ============================================================
 // TRANSACTIONS
@@ -29,10 +30,7 @@ export async function createTransaction(userId: string, input: TransactionInput)
     category = await prisma.category.create({ data: { userId, name: input.category, type: input.type === 'Pemasukan' ? 'income' : 'expense' } });
   }
 
-  let account = await prisma.account.findUnique({ where: { userId_name: { userId, name: input.account } } });
-  if (!account) {
-    account = await prisma.account.create({ data: { userId, name: input.account } });
-  }
+  const account = await getOrCreateAccount(userId, input.account);
 
   const tx = await prisma.transaction.create({
     data: { txId, userId, date, categoryId: category.id, description: input.description, accountId: account.id, type: input.type as TransactionType, amount: input.amount, note: input.note || null, month, week },
@@ -78,10 +76,7 @@ export async function createSavingsInvestment(userId: string, input: SavingsInpu
   const count = await prisma.savingsInvestment.count({ where: { userId, date: { gte: dayStart, lte: dayEnd } } });
   const invId = generateInvId(date, count + 1);
 
-  let account = await prisma.account.findUnique({ where: { userId_name: { userId, name: input.account } } });
-  if (!account) {
-    account = await prisma.account.create({ data: { userId, name: input.account } });
-  }
+  const account = await getOrCreateAccount(userId, input.account);
 
   const units = input.pricePerUnit ? input.nominal / input.pricePerUnit : null;
 

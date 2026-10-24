@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth';
+import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate, getMonthString, getWeekString, generateTxId } from '@/lib/utils';
 import { startOfDay, endOfDay } from 'date-fns';
@@ -7,8 +7,9 @@ import { TransactionType } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { debtId, isPiutang, debtName, amount, date, notes, accountId } = await req.json();
     if (!debtId || !amount || !date || !accountId) {
       return NextResponse.json({ error: 'debtId, amount, date, accountId are required' }, { status: 400 });
@@ -81,8 +82,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const debtId = new URL(req.url).searchParams.get('debtId');
     if (!debtId) return NextResponse.json({ error: 'debtId is required' }, { status: 400 });
 

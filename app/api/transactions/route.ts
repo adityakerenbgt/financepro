@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createTransaction, getTransactions } from '@/lib/services';
 import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getOrCreateAccount, planLimitResponse } from '@/lib/planLimits';
 import { parseDate, getMonthString, getWeekString } from '@/lib/utils';
 import { TransactionType } from '@prisma/client';
 
@@ -22,6 +23,8 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(result);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -42,6 +45,8 @@ export async function POST(req: NextRequest) {
     const tx = await createTransaction(user.userId, { date, category, description, account, type, amount: parseFloat(amount), note });
     return NextResponse.json(tx, { status: 201 });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -64,8 +69,7 @@ export async function PATCH(req: NextRequest) {
     let cat = await prisma.category.findUnique({ where: { userId_name: { userId: user.userId, name: category } } });
     if (!cat) cat = await prisma.category.create({ data: { userId: user.userId, name: category, type: type === 'Pemasukan' ? 'income' : 'expense' } });
 
-    let acc = await prisma.account.findUnique({ where: { userId_name: { userId: user.userId, name: account } } });
-    if (!acc) acc = await prisma.account.create({ data: { userId: user.userId, name: account } });
+    const acc = await getOrCreateAccount(user.userId, account);
 
     const newDate = parseDate(date);
     const newAmount = parseFloat(amount);
@@ -81,6 +85,8 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(tx);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -102,6 +108,8 @@ export async function DELETE(req: NextRequest) {
     await prisma.transaction.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

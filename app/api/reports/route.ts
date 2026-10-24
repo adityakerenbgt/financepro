@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDailyReport, getWeeklyReport, getMonthlyReport } from '@/lib/services';
-import { getUserFromRequest } from '@/lib/auth';
+import { requirePro } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type'); // daily, weekly, monthly

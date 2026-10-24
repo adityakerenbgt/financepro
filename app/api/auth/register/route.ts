@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { rateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
+    const rl = await rateLimit('register', getClientIp(req), 5, 60 * 60);
+    if (!rl.success) return tooManyRequests(rl.retryAfter);
+
     const { username, email, displayName, password, confirmPassword } = await req.json();
 
     if (!username || !password) {
@@ -45,7 +49,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, user }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('[register]', error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });
   }
 }

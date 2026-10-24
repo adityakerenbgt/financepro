@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCategories, getAccounts, getUserProfile } from '@/lib/services';
 import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { getOrCreateAccount, planLimitResponse } from '@/lib/planLimits';
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,6 +28,8 @@ export async function GET(req: NextRequest) {
       assets: assets.map(a => ({ name: a.instrumentName, type: a.assetType })),
     });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -68,6 +71,7 @@ export async function POST(req: NextRequest) {
 
     if (body.type === 'account') {
       if (!body.name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
+      await getOrCreateAccount(user.userId, body.name);
       const acc = await prisma.account.upsert({
         where: { userId_name: { userId: user.userId, name: body.name } },
         update: { type: body.accType || 'bank' },
@@ -78,6 +82,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'unknown type' }, { status: 400 });
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -100,6 +106,8 @@ export async function PUT(req: NextRequest) {
     });
     return NextResponse.json(profile);
   } catch (error: any) {
+    const limited = planLimitResponse(error);
+    if (limited) return limited;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

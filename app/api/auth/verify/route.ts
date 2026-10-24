@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-env';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get('auth-token')?.value;
+    const user = await getCurrentUser(req);
+    if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
 
-    if (!token) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; username: string; role: string; plan: string };
-
-    return NextResponse.json({ authenticated: true, username: decoded.username, role: decoded.role, plan: decoded.plan }, { status: 200 });
-  } catch (error: any) {
+    return NextResponse.json({ authenticated: true, username: user.username, role: user.role, plan: user.plan }, { status: 200 });
+  } catch {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 }

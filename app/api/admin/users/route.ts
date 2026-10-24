@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
@@ -8,8 +8,8 @@ const USER_SELECT = {
   role: true, plan: true, planExpiresAt: true, createdAt: true,
 } as const;
 
-function requireAdmin(req: NextRequest) {
-  const user = getUserFromRequest(req);
+async function requireAdmin(req: NextRequest) {
+  const user = await getCurrentUser(req);
   if (!user) return null;
   if (user.role !== 'ADMIN') return null;
   return user;
@@ -17,7 +17,7 @@ function requireAdmin(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const admin = requireAdmin(req);
+    const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const users = await prisma.user.findMany({ select: USER_SELECT, orderBy: { createdAt: 'asc' } });
     return NextResponse.json(users);
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = requireAdmin(req);
+    const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { username, displayName, password, role } = await req.json();
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const admin = requireAdmin(req);
+    const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const admin = requireAdmin(req);
+    const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { id } = await req.json();

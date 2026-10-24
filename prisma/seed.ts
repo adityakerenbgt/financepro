@@ -7,8 +7,11 @@ async function main() {
   console.log('🌱 Seeding database (multi-user)...');
 
   // ---- Admin User: virgiangalang ----
-  const ADMIN_USERNAME = 'virgiangalang';
-  const ADMIN_PASSWORD = 'aBpCBx8s7XG8fOtG';
+  const ADMIN_USERNAME = process.env.SEED_ADMIN_USERNAME;
+  const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+    throw new Error('SEED_ADMIN_USERNAME dan SEED_ADMIN_PASSWORD wajib diisi di .env');
+  }
 
   const hashedAdmin = await bcrypt.hash(ADMIN_PASSWORD, 10);
   const admin = await prisma.user.upsert({
@@ -225,7 +228,7 @@ async function main() {
   console.log('✓ Sample goals created');
 
   console.log('\n✅ Database seeded successfully!');
-  console.log(`   Admin: ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`);
+  console.log(`   Admin: ${ADMIN_USERNAME}`);
 }
 
 main()

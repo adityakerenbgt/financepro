@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGoalSummaries } from '@/lib/services';
-import { getUserFromRequest } from '@/lib/auth';
+import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const goals = await getGoalSummaries(user.userId);
     return NextResponse.json(goals);
   } catch (error: any) {
@@ -17,8 +18,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { goalName, targetAmount, targetDate } = await req.json();
     if (!goalName || !targetAmount || !targetDate) {
       return NextResponse.json({ error: 'goalName, targetAmount, and targetDate are required' }, { status: 400 });
@@ -34,8 +36,9 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { id, goalName, targetAmount, targetDate } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.goal.findFirst({ where: { id, userId: user.userId } });
@@ -52,8 +55,9 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requirePro(req);
+    if (auth.error) return auth.error;
+    const user = auth.user;
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
     const existing = await prisma.goal.findFirst({ where: { id, userId: user.userId } });

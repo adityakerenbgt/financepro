@@ -44,6 +44,9 @@ export async function PATCH(req: NextRequest) {
     const { id, name, type } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
+    const existing = await prisma.category.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
     const category = await prisma.category.update({
       where: { id },
       data: { name: name?.trim() || undefined, type: type || undefined },
@@ -62,6 +65,9 @@ export async function DELETE(req: NextRequest) {
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+
+    const existing = await prisma.category.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const txCount = await prisma.transaction.count({ where: { categoryId: id, userId: user.userId } });
     if (txCount > 0) return NextResponse.json({ error: `Kategori tidak bisa dihapus karena digunakan di ${txCount} transaksi` }, { status: 400 });
