@@ -9,6 +9,7 @@ import { useLang } from '@/app/i18n';
 import { useCurrency } from '@/app/currency-context';
 import CurrencySwitcher from '../../components/CurrencySwitcher';
 import { accountTypeLabel } from '@/lib/labels';
+import { fetchJson, fetchList } from '@/lib/clientFetch';
 
 
 const ACC_TYPES = ['bank', 'cash', 'ewallet', 'credit_card', 'paylater'];
@@ -45,12 +46,11 @@ export default function SettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [profileRes, catRes, accRes] = await Promise.all([
-          fetch('/api/setup'),
-          fetch('/api/categories'),
-          fetch('/api/accounts'),
+        const [profileData, catList, accList] = await Promise.all([
+          fetchJson('/api/setup'),
+          fetchList('/api/categories'),
+          fetchList('/api/accounts'),
         ]);
-        const profileData = await profileRes.json();
         if (profileData.profile) {
           setProfile({
             name: profileData.profile.name || '',
@@ -59,8 +59,8 @@ export default function SettingsPage() {
             targetExpense: profileData.profile.targetExpense?.toString() || '',
           });
         }
-        setCategories(await catRes.json());
-        setAccounts(await accRes.json());
+        setCategories(catList);
+        setAccounts(accList);
       } catch {}
       finally { setLoading(false); }
     })();

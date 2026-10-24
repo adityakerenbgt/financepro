@@ -6,6 +6,7 @@ import { useToast } from '../../providers';
 import { RpInput } from '../../components/RpInput';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang, localeOf } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 const ACC_TYPES = [
   { value: 'bank',        label: 'Bank',        color: 'text-blue-400',   bg: 'bg-blue-500/10' },
@@ -52,8 +53,7 @@ export default function RekeningPage() {
   const fetch_ = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/accounts');
-      setAccounts(await res.json());
+      setAccounts(await fetchList('/api/accounts'));
     } catch {} finally { setLoading(false); }
   }, []);
 

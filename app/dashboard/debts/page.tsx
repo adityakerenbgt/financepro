@@ -9,6 +9,7 @@ import { useAuth } from '../../auth-context';
 import ProGate from '../../components/ProGate';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 
 interface DebtRow extends DebtSummary {}
@@ -29,17 +30,15 @@ export default function DebtsPage() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const { toast } = useToast();
 
-  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Hutang & Piutang" />;
-
   const fetch_ = useCallback(async () => {
     setLoading(true);
     try {
-      const [debtsRes, accountsRes] = await Promise.all([
-        fetch('/api/debts'),
-        fetch('/api/accounts')
+      const [debtsList, accountsList] = await Promise.all([
+        fetchList('/api/debts'),
+        fetchList('/api/accounts'),
       ]);
-      setDebts(await debtsRes.json());
-      setAccounts(await accountsRes.json());
+      setDebts(debtsList);
+      setAccounts(accountsList);
     }
     catch {} finally { setLoading(false); }
   }, []);
@@ -62,6 +61,8 @@ export default function DebtsPage() {
       fetch_();
     } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Hutang & Piutang" />;
 
   return (
     <div className="space-y-6">
@@ -107,7 +108,7 @@ export default function DebtsPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className={`${d.status === 'Lunas' ? 'badge-success' : d.status === 'Over Limit' ? 'badge-danger' : 'badge-warning'} mr-1`}>
-                    {d.status === 'Lunas' ? t('Lunas', 'Paid Off') : d.status === 'Aktif' ? t('Aktif', 'Active') : d.status}
+                    {d.status === 'Lunas' ? t('Lunas', 'Paid Off') : (d.status === 'Aktif' || d.status === 'Active') ? t('Aktif', 'Active') : d.status === 'Over Limit' ? t('Melebihi Limit', 'Over Limit') : d.status}
                   </span>
                   {confirmDeleteId === d.id ? (
                     <>

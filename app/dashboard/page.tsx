@@ -48,7 +48,7 @@ export default function DashboardPage() {
       if (endDate) params.set('endDate', endDate);
       const res = await fetch(`/api/dashboard-data?${params}`);
       const json = await res.json();
-      setData(json);
+      setData(res.ok && json?.kpi ? json : null);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {

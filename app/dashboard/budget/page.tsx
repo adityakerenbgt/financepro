@@ -10,6 +10,7 @@ import type { BudgetSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang, localeOf } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 
 type BudgetRow = BudgetSummary;
@@ -19,7 +20,6 @@ export default function BudgetPage() {
   const { t } = useLang();
   const [budgets, setBudgets] = useState<BudgetRow[]>([]);
 
-  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Budget" />;
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<BudgetRow | null>(null);
@@ -28,7 +28,7 @@ export default function BudgetPage() {
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
-    try { const res = await fetch('/api/budget'); setBudgets(await res.json()); }
+    try { setBudgets(await fetchList('/api/budget')); }
     catch {} finally { setLoading(false); }
   }, []);
 
@@ -43,6 +43,8 @@ export default function BudgetPage() {
       fetch_();
     } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Budget" />;
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { cookies } from 'next/headers';
 import { Providers } from './providers';
@@ -8,17 +8,22 @@ export const metadata: Metadata = {
   title: 'FinancePro — Personal Finance Manager',
   description: 'Kelola keuangan pribadi: transaksi, investasi, utang, budget, dan goals.',
   manifest: '/manifest.json',
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)',  color: '#0f172a' },
-    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
-  ],
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'FinancePro',
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: { icon: '/icon.svg', apple: '/icon.svg' },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)',  color: '#0f172a' },
+    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

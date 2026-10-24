@@ -10,6 +10,7 @@ import ProGate from '../../components/ProGate';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { assetTypeLabel } from '@/lib/labels';
 import { useLang, localeOf } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 
 const ASSET_TYPES = ['Investasi', 'Dana Darurat', 'Tabungan', 'Emas', 'Crypto', 'Properti'];
@@ -40,11 +41,9 @@ export default function SavingsPage() {
   const [txTypeFilter, setTxTypeFilter] = useState('');
   const { toast } = useToast();
 
-  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Nabung & Investasi" />;
-
   const fetch_ = useCallback(async () => {
     setLoading(true);
-    try { const res = await fetch('/api/savings'); setItems(await res.json()); }
+    try { setItems(await fetchList('/api/savings')); }
     catch {} finally { setLoading(false); }
   }, []);
 
@@ -65,6 +64,8 @@ export default function SavingsPage() {
       fetch_();
     } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Nabung & Investasi" />;
 
   return (
     <div className="space-y-6">

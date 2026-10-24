@@ -9,6 +9,7 @@ import type { GoalSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang, localeOf } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 
 export default function GoalsPage() {
@@ -16,7 +17,6 @@ export default function GoalsPage() {
   const { t, lang } = useLang();
   const [goals, setGoals] = useState<GoalSummary[]>([]);
 
-  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Goals" />;
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<GoalSummary | null>(null);
@@ -25,7 +25,7 @@ export default function GoalsPage() {
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
-    try { const res = await fetch('/api/goals'); setGoals(await res.json()); }
+    try { setGoals(await fetchList('/api/goals')); }
     catch {} finally { setLoading(false); }
   }, []);
 
@@ -40,6 +40,8 @@ export default function GoalsPage() {
       fetch_();
     } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Goals" />;
 
   return (
     <div className="space-y-6">

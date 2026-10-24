@@ -7,6 +7,7 @@ import { useSetupData } from '../hooks';
 import { RpInput } from '../components/RpInput';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang, localeOf } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 const PAGE_SIZE = 25;
 
@@ -77,7 +78,7 @@ export default function TransactionsPage() {
   }, [startDate, endDate, typeFilter, categoryFilter, search, currentPage]);
 
   const fetchTransfers = useCallback(async () => {
-    try { const res = await fetch('/api/transfer'); setTransfers(await res.json()); } catch {}
+    try { setTransfers(await fetchList('/api/transfer')); } catch {}
   }, []);
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);

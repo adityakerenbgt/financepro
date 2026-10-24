@@ -20,15 +20,18 @@ let fetchPromise: Promise<SetupData> | null = null;
 
 async function fetchSetup(): Promise<SetupData> {
   const res = await fetch('/api/setup');
-  const data = await res.json();
-  cachedData = {
-    categories: data.categories || [],
-    accounts: data.accounts || [],
-    goals: data.goals || [],
-    debts: data.debts || [],
-    assets: data.assets || [],
+  const data = await res.json().catch(() => null);
+  const result: SetupData = {
+    categories: data?.categories || [],
+    accounts: data?.accounts || [],
+    goals: data?.goals || [],
+    debts: data?.debts || [],
+    assets: data?.assets || [],
   };
-  return cachedData;
+  // Jangan cache hasil kosong akibat error, agar percobaan berikutnya mengambil ulang
+  if (res.ok) cachedData = result;
+  else fetchPromise = null;
+  return result;
 }
 
 export function useSetupData() {
@@ -44,7 +47,7 @@ export function useSetupData() {
       return;
     }
     if (!fetchPromise) fetchPromise = fetchSetup();
-    fetchPromise.then(d => { setData(d); setLoading(false); });
+    fetchPromise.then(d => { setData(d); setLoading(false); }).catch(() => { fetchPromise = null; setLoading(false); });
   }, []);
 
   // Force refresh (call after adding new category/account)

@@ -9,6 +9,7 @@ import type { AssetSummary } from '@/types';
 import { RpInput } from '../../components/RpInput';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang } from '@/app/i18n';
+import { fetchList } from '@/lib/clientFetch';
 
 
 const ASSET_TYPES = ['Investasi', 'Dana Darurat', 'Properti', 'Kendaraan', 'Emas', 'Crypto', 'Lainnya'];
@@ -20,7 +21,6 @@ export default function AssetsPage() {
   const { toast } = useToast();
   const { t, lang } = useLang();
 
-  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Aset" />;
   const [assets, setAssets] = useState<AssetSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -32,7 +32,7 @@ export default function AssetsPage() {
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
-    try { const res = await fetch('/api/assets'); setAssets(await res.json()); }
+    try { setAssets(await fetchList('/api/assets')); }
     catch {} finally { setLoading(false); }
   }, []);
 
@@ -62,6 +62,8 @@ export default function AssetsPage() {
       fetch_();
     } catch (err: any) { toast(err.message || t('Gagal menghapus', 'Failed to delete'), 'error'); }
   };
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Aset" />;
 
   return (
     <div className="space-y-6">

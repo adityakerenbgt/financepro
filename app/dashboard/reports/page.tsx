@@ -43,8 +43,6 @@ export default function ReportsPage() {
   const { t, lang } = useLang();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
-  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Laporan Lengkap" />;
-
   // Daily
   const [dailyDate, setDailyDate] = useState('');
 
@@ -87,6 +85,8 @@ export default function ReportsPage() {
       setLoading(false);
     }
   };
+
+  if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="Laporan Lengkap" />;
 
   return (
     <div className="space-y-6">
