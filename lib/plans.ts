@@ -5,6 +5,16 @@ export const PRICING = {
   proYearly: 249_000,
 } as const;
 
+// Paket yang bisa dibayar. Nominal SELALU diambil dari sini, tidak pernah dari body request.
+export type PaymentPlanKey = 'PRO_MONTHLY' | 'PRO_YEARLY';
+export const PAYMENT_PLANS: Record<PaymentPlanKey, { amount: number; months: number }> = {
+  PRO_MONTHLY: { amount: PRICING.proMonthly, months: 1 },
+  PRO_YEARLY: { amount: PRICING.proYearly, months: 12 },
+};
+
+// Lama trial PRO untuk akun baru (hari)
+export const TRIAL_DAYS = 14;
+
 // Hemat dibanding 12x bulanan (dibulatkan)
 export const YEARLY_SAVING_PERCENT = Math.round((1 - PRICING.proYearly / (PRICING.proMonthly * 12)) * 100);
 export const YEARLY_PER_MONTH = Math.round(PRICING.proYearly / 12);

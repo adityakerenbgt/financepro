@@ -101,6 +101,12 @@ export default function LoginPage() {
             {loading ? t('Sedang login...', 'Signing in...') : t('Login', 'Log in')}
           </button>
 
+          <p className="text-center text-sm">
+            <a href="/forgot-password" className="text-slate-400 hover:text-blue-400 hover:underline">
+              {t('Lupa password?', 'Forgot password?')}
+            </a>
+          </p>
+
           <p className="text-center text-slate-400 text-sm">
             {t('Belum punya akun?', 'No account yet?')}{' '}
             <a href="/register" className="text-blue-400 hover:underline font-medium">

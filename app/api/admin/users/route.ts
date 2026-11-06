@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { isTrial } from '@/lib/plan';
 
 const USER_SELECT = {
   id: true, username: true, displayName: true,
-  role: true, plan: true, planExpiresAt: true, createdAt: true,
+  role: true, plan: true, planExpiresAt: true, trialEndsAt: true, createdAt: true,
 } as const;
 
 async function requireAdmin(req: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const users = await prisma.user.findMany({ select: USER_SELECT, orderBy: { createdAt: 'asc' } });
-    return NextResponse.json(users);
+    return NextResponse.json(users.map(({ trialEndsAt, ...u }) => ({ ...u, isTrial: isTrial({ ...u, trialEndsAt }) })));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -9,6 +9,39 @@ Daftar kerja lengkap, diurutkan sesuai timeline magang 6 bulan (dokumen timeline
 - **Review:** 🔒 = menyentuh keamanan/uang/schema → mentor wajib review sebelum merge.
 - **Butuh:** task yang harus selesai lebih dulu.
 
+## Status pengerjaan (diperbarui 24 Okt 2026)
+
+Dicek lewat pembacaan kode dan uji manual/curl; **belum ada test otomatis**. ✅ selesai · 🟡 sebagian · ⬜ belum.
+
+| Status | Task | Catatan |
+|---|---|---|
+| ✅ | P0-1 IDOR | Kepemilikan dicek di accounts, categories, debts. Belum ada skrip uji dua akun. |
+| ✅ | P0-2 Plan di server | `requirePro` di 7 endpoint, batas 1 rekening FREE. Belum ada test matriks. |
+| ✅ | P0-3 Secret | `lib/env.ts`, seed dari env, `/api/auth/seed` dihapus. Riwayat git lama tetap memuat secret lama (rotasi tugas owner). |
+| ✅ | P0-4 Plan efektif dari DB | `lib/plan.ts`, `getCurrentUser`. Belum ada unit test tabel. |
+| ✅ | P0-5 Rate limit | Upstash + cadangan in-memory (tidak efektif di serverless). |
+| ✅ | T-1.1 Setup lokal | App jalan di localhost, DB di Supabase pribadi. |
+| 🟡 | T-1.2 / T-1.3 Landing page | Terimplementasi (harga, FAQ, SEO, `lib/plans.ts`, tanpa redirect). Belum: persetujuan wireframe, ukur Lighthouse. |
+| ✅ | T-2.1 Terms & Privacy | `/terms`, `/privacy`, checkbox wajib (client+server), `User.termsAcceptedAt`. **Teks masih draf, perlu tinjauan owner/hukum.** |
+| ✅ | T-2.2 Onboarding | `seedDefaultCategories` saat register, `OnboardingChecklist` di dashboard (status dihitung dari data, bisa ditutup, tersimpan di `UserProfile.onboardingDismissedAt`). Hanya tampil untuk akun < 30 hari. |
+| 🟡 | T-2.3 Email welcome | Kode selesai: `lib/email.ts` (Resend via REST), template ID/EN, dikirim dari register tanpa memblokir. Teruji dengan mock. **Belum teruji kirim sungguhan**: butuh akun Resend, `RESEND_API_KEY`, dan SPF/DKIM `grexion.ai`. **Keputusan owner: email wajib saat daftar** (client + server, format divalidasi, disimpan huruf kecil, unik); user lama tanpa email tidak terpengaruh. |
+| 🟡 | T-2.4 Reset password | Selesai & teruji: `/forgot-password`, `/reset-password`, `PasswordResetToken` (hash SHA-256, 1 jam, sekali pakai, aman terhadap permintaan serentak), rate limit, respons generik. Email reset baru terkirim sungguhan setelah Resend aktif (di dev tautan dicetak di terminal). **Belum**: sesi/JWT lama tetap valid setelah reset (opsional di handover: `passwordChangedAt`). |
+| ✅ | T-3.1 Free trial 14 hari | Register: `plan PRO` + `planExpiresAt = trialEndsAt = +14 hari` (`TRIAL_DAYS` di `lib/plans.ts`). Banner sisa hari + badge TRIAL di sidebar, label TRIAL di panel admin (trial = `planExpiresAt` masih sama dengan `trialEndsAt`; diubah admin/pembayaran → dianggap berbayar). Hari ke-15 otomatis FREE tanpa login ulang. Hanya akun baru; tidak ada backfill. |
+| ✅ | T-3.2 Permintaan pembayaran (user) | **Teruji ke Supabase Storage sungguhan** (bucket privat `payment-proofs` dibuat via `npm run storage:setup`; Supabase sendiri menolak tipe/ukuran di luar aturan; URL publik tidak bisa mengakses bukti). Rincian: `PaymentRequest`, `POST /api/payments/upload-url`, `POST/GET /api/payments`, form + riwayat di `/dashboard/upgrade`, `lib/storage.ts`, `npm run storage:setup`. Nominal dari server, 1 PENDING/user (Serializable), bukti privat. Dependency baru: `@supabase/storage-js`. |
+| ⬜ | T-3.3 – T-3.4 Approve admin & notifikasi | WA/rekening masih placeholder di halaman upgrade. |
+| ⬜ | T-4.1 – T-4.4 Cron, reminder, analytics, digest | `vercel.json` belum ada. |
+| ⬜ | T-5.1 – T-5.4 Produktivitas | |
+| ⬜ | T-6.1 – T-6.6 Finalisasi | |
+| ⬜ | T-DEBT-1 … 11 | Belum ada ESLint, Zod, Vitest, `$transaction`; CORS `*` dan `googleSheets.ts` masih ada. |
+| ✅ | T-OWN-1 Ganti bahasa | ID/EN, tersimpan di cookie (belum di `UserProfile`). |
+| 🟡 | T-OWN-2 Mata uang | Kurs live gratis + 27 mata uang tampilan. Belum: simpan kurs di DB cloud, cron. |
+| ✅ | T-OWN-3 Landing page | Mengikuti T-1.3. |
+| ⬜ | T-OWN-4 Perbarui `.md` | `README.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md` di root masih usang. |
+| ✅ | T-OWN-5 Supabase pribadi | Terhubung dan tabel sudah dibuat. Data lama tidak ikut pindah. |
+| ⬜ | T-OWN-6, 7, 8, 9 / T-BOT-1 | Chatbot, notifikasi admin, nota Gemini, bot Telegram aman. |
+
+**Pekerjaan di luar backlog yang sudah masuk:** perbaikan logout yang dulu menghapus data semua user, hardening fetch client dan pool DB, seed akun demo.
+
 ## Ringkasan & peta ke timeline
 
 | Bulan | Fokus timeline | Task |
@@ -21,6 +54,7 @@ Daftar kerja lengkap, diurutkan sesuai timeline magang 6 bulan (dokumen timeline
 | **Bulan 5** | Fitur Produktivitas | T-5.1 … T-5.4 |
 | **Bulan 6** | Finalisasi, QA & Handover | T-6.1 … T-6.6 |
 | Paralel / stretch | Utang teknis & bot | T-DEBT-1 … 11, T-BOT-1 |
+| **Tambahan owner** | Bahasa, kurs, Supabase pribadi, notifikasi admin, nota Gemini, bot | T-OWN-1 … T-OWN-9 (lihat bagian "BAGIAN OWNER") |
 
 > **Penyesuaian terhadap timeline awal:** (1) tugas P0 (keamanan) belum tertulis di timeline dan harus dikerjakan di 2 minggu pertama — slot Bulan 1 cukup longgar; (2) item "Search & pagination" di Bulan 5 **sudah ada** di kode, jadi diganti dengan preset rentang tanggal + pembatasan server untuk FREE (T-5.3); (3) rate limiting (timeline Bulan 1, minggu 4) = **P0-5**.
 
@@ -336,6 +370,70 @@ T-4.1 (cron infra) → T-4.2, T-4.4, T-5.1
 - **Masalah:** bot bertindak atas nama admin pertama, tanpa whitelist & tanpa secret webhook (lihat `03_ARCHITECTURE.md` § 7).
 - **Rancangan:** `User.telegramChatId String? @unique`; di Pengaturan tombol "Hubungkan Telegram" membuat kode 6 digit berumur 10 menit (`TelegramLinkCode`); di bot `/link <kode>` menautkan chat ↔ user. Semua handler memuat user dari `chatId`; chat tak dikenal → balas "Hubungkan akun dulu" dan **berhenti**. `webhookCallback(bot, 'std/http', { secretToken })` + `setWebhook` dengan `secret_token`. Batasi command PRO untuk FREE. Ganti `Map` percakapan ke penyimpanan tahan restart (tabel/Redis).
 - **Selesai bila:** [ ] chat asing tidak bisa membaca/menulis data siapa pun; [ ] dua user berbeda memakai bot terpisah dan datanya tidak tercampur; [ ] request webhook tanpa secret → 401; [ ] FREE ditolak di command PRO.
+
+---
+
+# BAGIAN OWNER — Tambahan permintaan (T-OWN)
+
+Daftar ini ditambahkan owner setelah audit. Beberapa butir tumpang tindih dengan task yang sudah ada; kolom **Kaitan** menunjukkan task mana yang dipakai ulang agar tidak dikerjakan dua kali. Tafsiran yang saya ambil dari catatan singkat owner ditandai ⚠ — **konfirmasi ke owner sebelum mulai**.
+
+| ID | Tugas | Level · Estimasi | Kaitan / Butuh |
+|---|---|---|---|
+| **T-OWN-1** | Ganti bahasa (i18n ID/EN) | ⭐⭐ · 4–5 hari | `UserProfile` |
+| **T-OWN-2** | Mata uang: kurs real-time gratis, disimpan di cloud | ⭐⭐⭐ · 5–6 hari 🔒 | P0-3, T-4.1 (cron) |
+| **T-OWN-3** | Landing page | — | **sama dengan T-1.2 + T-1.3** |
+| **T-OWN-4** | Memperbarui dokumen `.md` | ⭐ · 2–3 hari | **sama dengan T-6.6**, tapi dikerjakan bertahap |
+| **T-OWN-5** | Pindah env ke Supabase pribadi | ⭐ · 0,5–1 hari 🔒 | P0-3 |
+| **T-OWN-6** | Chatbot pencatat keuangan (opsional) | ⭐⭐⭐ · 5–7 hari | T-OWN-9, P0-2 |
+| **T-OWN-7** | Notifikasi admin via email + jam kerja admin | ⭐⭐ · 3–4 hari | T-2.3, T-3.2, T-3.3 |
+| **T-OWN-8** | Foto nota → transaksi (Gemini) | ⭐⭐⭐ · 6–7 hari 🔒 | P0-2, T-DEBT-2 |
+| **T-OWN-9** | Bot Telegram via BotFather | ⭐⭐⭐ · 5–6 hari 🔒 | **sama dengan T-BOT-1** |
+
+### T-OWN-1 · Ganti bahasa (Indonesia / English)
+- **Langkah:** (1) pilih library (`next-intl` cocok untuk App Router; tanya mentor sebelum menambah dependency). (2) Ekstrak teks UI ke file terjemahan `messages/id.json` dan `messages/en.json`. (3) Saklar bahasa di Pengaturan dan navbar landing; simpan pilihan di `UserProfile.language` (user login) atau cookie (pengunjung). (4) Format tanggal dan angka mengikuti locale.
+- **Selesai bila:** [ ] saklar mengganti seluruh teks halaman utama (landing, login, register, dashboard, transaksi, pengaturan); [ ] pilihan bertahan setelah reload; [ ] tidak ada teks yang tertinggal hardcode di halaman yang sudah dimigrasi (daftar halaman tersisa dicatat di PR); [ ] email (T-2.3) memakai bahasa pilihan user.
+- **Saran:** kerjakan setelah landing page selesai, dan migrasi halaman bertahap, bukan sekaligus.
+
+### T-OWN-2 · Mata uang: kurs real-time gratis ke cloud ⚠
+- **Tafsiran:** catatan owner "ubah curse" dibaca sebagai **currency/mata uang**. Tujuannya: user bisa memilih mata uang, dan kurs diambil dari API gratis lalu disimpan di database cloud (Supabase) agar tidak memanggil API pada setiap request.
+- **Sumber kurs (usulan owner):** *Free Currency Exchange Rates API* di GitHub (`fawazahmed0/exchange-api`), tanpa API key, dilayani lewat CDN. Periksa dulu URL, format respons, dan batas pemakaian di README repo tersebut; sediakan fallback bila CDN gagal.
+- **Schema:** `ExchangeRate { id, base, quote, rate Float, fetchedAt }` dengan `@@unique([base, quote])`. Aktifkan `UserProfile.currency` (sudah ada di schema, belum dipakai).
+- **Langkah:** (1) env baru bila perlu (`EXCHANGE_API_URL`, tanpa secret). (2) `lib/exchangeRates.ts`: ambil kurs → simpan/`upsert` ke tabel. (3) Cron harian (infra dari T-4.1) menyegarkan kurs; endpoint cron dilindungi `CRON_SECRET`. (4) `convert(amount, from, to)` membaca dari tabel, bukan dari API. (5) Tampilkan nilai di mata uang pilihan user; **data transaksi tetap disimpan dalam satu mata uang dasar (IDR)** supaya saldo tidak rusak.
+- **Selesai bila:** [ ] kurs tersimpan di DB dengan `fetchedAt`; [ ] API gagal → pakai kurs terakhir dan tidak error; [ ] cron dua kali tidak menggandakan baris; [ ] user bisa memilih mata uang tampilan dan angka dashboard terkonversi benar (uji dengan kurs tetap); [ ] saldo di database tidak berubah akibat ganti mata uang tampilan.
+- **Catatan:** uang saat ini `Float` (lihat T-DEBT-6). Jangan mengubah tipe kolom di task ini; konversi hanya untuk tampilan. Putuskan bersama mentor apakah impor CSV (T-5.4) ikut mendukung mata uang asing.
+
+### T-OWN-3 · Landing page
+- Tidak dibuat task baru: kerjakan **T-1.2 (wireframe/konten)** lalu **T-1.3 (implementasi)**. Tambahan dari owner: saklar bahasa (T-OWN-1) dan bagian harga yang membaca `lib/plans.ts`.
+
+### T-OWN-4 · Memodifikasi dokumen `.md`
+- **Cakupan:** `README.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md`, `CLAUDE.md`, `AGENTS.md`, dan dokumen di `FinancePro_Intern_Handover/docs/`. Isi usang yang sudah diketahui tercantum di `06_CURRENT_STATUS.md` § D.
+- **Aturan:** setiap task yang mengubah perilaku aplikasi (env baru, endpoint baru, schema baru) **memperbarui dokumen terkait di PR yang sama**; T-6.6 hanya merapikan sisanya. Jangan menaruh secret atau kredensial di dokumen.
+- **Selesai bila:** [ ] dokumen cocok dengan kode terkini; [ ] daftar env di `.env.example`, `09_LOCAL_SETUP.md`, dan `DEPLOYMENT.md` sama; [ ] orang baru bisa menjalankan proyek hanya dari `README.md`.
+
+### T-OWN-5 · Pindah ke Supabase pribadi 🔒
+- **Langkah:** (1) buat project Supabase milik sendiri (jangan memakai database produksi). (2) Isi `DATABASE_URL` (dan `DIRECT_URL` bila memakai pooler) di `.env.local` milik sendiri. (3) `npx prisma db push` lalu `npm run db:seed` (setelah P0-3, seed memakai `SEED_ADMIN_*`). (4) Bila nanti memakai Storage (T-3.2), buat bucket di project yang sama.
+- **Selesai bila:** [ ] aplikasi jalan penuh di database pribadi; [ ] `.env`/`.env.local` tidak ter-commit (`git status` bersih); [ ] kunci Supabase tidak muncul di chat AI, log, atau dokumen.
+- **Catatan:** password database dan `service_role` key adalah secret. Jangan ditempel ke AI.
+
+### T-OWN-6 · Chatbot pencatat keuangan (opsional) ⚠
+- **Tafsiran:** user mengetik kalimat bebas ("makan siang 25rb pakai BCA") dan bot menyimpannya sebagai transaksi. Bisa lewat Telegram (T-OWN-9) atau widget chat di web; **putuskan dulu dengan owner**.
+- **Rancangan:** LLM (mis. Gemini, sama dengan T-OWN-8) hanya **mengekstrak** `{type, amount, category, account, date}` menjadi JSON; transaksi dibuat lewat `createTransaction` setelah user menekan **konfirmasi**. Jangan biarkan model memanggil database langsung.
+- **Selesai bila:** [ ] kalimat umum Bahasa Indonesia ("25rb", "2,5 juta") terbaca benar; [ ] ada langkah konfirmasi sebelum tersimpan; [ ] input ambigu memicu pertanyaan balik, bukan tebakan; [ ] data hanya milik user yang sedang login; [ ] batas pemakaian per user dan penanganan kegagalan API ada.
+
+### T-OWN-7 · Notifikasi admin via email + jam kerja admin ⚠
+- **Tafsiran:** setiap ada permintaan pembayaran baru (T-3.2), admin menerima **email** berisi ringkasan dan tautan ke panel approve (T-3.3). "Jam kerja admin" dibaca sebagai informasi yang ditampilkan ke user: kapan konfirmasi pembayaran diproses, serta opsi menunda email di luar jam kerja. **Konfirmasi tafsiran ini ke owner.**
+- **Langkah:** (1) `ADMIN_NOTIFY_EMAIL` dan jam kerja (mis. `ADMIN_HOURS=08:00-17:00`, zona waktu WIB) di env/`lib/plans.ts`. (2) Kirim email lewat `lib/email.ts` (T-2.3) tanpa memblokir request. (3) Di halaman upgrade, tampilkan estimasi waktu konfirmasi dan jam kerja. (4) Tombol approve/reject tetap lewat panel admin (login), **bukan** tautan email yang langsung menyetujui tanpa autentikasi.
+- **Selesai bila:** [ ] permintaan pembayaran baru mengirim email ke admin; [ ] gagal kirim tidak menggagalkan permintaan; [ ] jam kerja tampil benar dalam WIB (uji zona waktu); [ ] tidak ada tautan email yang bisa menyetujui pembayaran tanpa login.
+
+### T-OWN-8 · Foto nota → transaksi (Gemini) 🔒
+- **Alur:** user mengunggah foto nota → server mengirim ke Gemini (mode multimodal) → hasil JSON `{tanggal, total, merchant, item?, kategori usulan}` → **pratinjau yang bisa diedit** → user konfirmasi → `createTransaction`.
+- **Aturan:** `GEMINI_API_KEY` hanya di server, bukan `NEXT_PUBLIC_`. Validasi tipe (jpg/png/webp) dan ukuran (≤ 2 MB) seperti T-3.2. Validasi keluaran model dengan Zod; angka dari model dianggap **tidak tepercaya** sampai user mengonfirmasi. Foto nota berisi data pribadi: jangan simpan permanen kecuali user memintanya, dan jangan dicatat ke log. Fitur PRO atau semua plan? **Putuskan dengan owner** (biaya API ditanggung owner).
+- **Selesai bila:** [ ] 10 foto nota uji (jelas, miring, buram) menghasilkan pratinjau, dan akurasi dicatat di PR; [ ] tidak ada transaksi tersimpan tanpa konfirmasi; [ ] nota tak terbaca → pesan ramah, bukan error mentah; [ ] kunci API tidak muncul di bundle client (`npm run build` lalu cari kunci); [ ] ada batas pemakaian per user per hari.
+- **Catatan:** cek kebijakan data dan kuota free tier Gemini sebelum dipakai untuk data pengguna sungguhan.
+
+### T-OWN-9 · Bot Telegram via BotFather 🔒
+- **Sama dengan T-BOT-1** (multi-user, penautan `/link <kode>`, secret webhook, tanpa akses chat asing). Tambahan dari owner: dokumentasikan langkah membuat bot di BotFather (`/newbot`, ambil token, `/setcommands`, `/setdescription`) di `09_LOCAL_SETUP.md`.
+- **Aturan:** token bot adalah secret; bila pernah tertempel di chat/git, buat ulang lewat BotFather (`/revoke`). `setWebhook` hanya setelah T-BOT-1 selesai (lihat T-6.5). Bot ini juga menjadi saluran untuk T-OWN-6 dan, bila disetujui, T-OWN-8.
 
 ---
 

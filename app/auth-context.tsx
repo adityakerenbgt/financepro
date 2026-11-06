@@ -7,6 +7,8 @@ interface AuthContextType {
   username: string | null;
   role: string | null;
   plan: 'FREE' | 'PRO' | null;
+  planExpiresAt: string | null;
+  isTrial: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -19,6 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [plan, setPlan] = useState<'FREE' | 'PRO' | null>(null);
+  const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
+  const [isTrial, setIsTrial] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUsername(data.username || null);
           setRole(data.role || null);
           setPlan(data.plan || null);
+          setPlanExpiresAt(data.planExpiresAt || null);
+          setIsTrial(!!data.isTrial);
         }
       } catch {
         setIsAuthenticated(false);
@@ -56,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(data.username);
     setRole(data.role || null);
     setPlan(data.plan || null);
+    setPlanExpiresAt(data.planExpiresAt || null);
+    setIsTrial(!!data.isTrial);
   };
 
   const logout = async () => {
@@ -64,10 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
     setRole(null);
     setPlan(null);
+    setPlanExpiresAt(null);
+    setIsTrial(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, role, plan, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, username, role, plan, planExpiresAt, isTrial, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

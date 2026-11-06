@@ -13,6 +13,7 @@ import { useAuth } from '../auth-context';
 import { useLang } from '../i18n';
 import { formatMoney } from '@/lib/currency';
 import { PRICING } from '@/lib/plans';
+import { daysLeft } from '@/lib/plan';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import CurrencySwitcher from '../components/CurrencySwitcher';
 
@@ -35,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { t } = useLang();
-  const { logout, role, plan } = useAuth();
+  const { logout, role, plan, isTrial, planExpiresAt } = useAuth();
   const navItems = allNavItems.filter(item => !item.adminOnly || role === 'ADMIN');
   const isProUser = role === 'ADMIN' || plan === 'PRO';
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -218,7 +219,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm text-white font-medium truncate">{userName}</p>
                   {isProUser ? (
-                    <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1 rounded font-bold">PRO</span>
+                    <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-1 rounded font-bold">{isTrial ? 'TRIAL' : 'PRO'}</span>
                   ) : (
                     <span className="text-xs bg-slate-700 text-slate-400 border border-slate-600 px-1 rounded">FREE</span>
                   )}
@@ -258,6 +259,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          {isTrial && planExpiresAt && (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Sparkles className="w-4 h-4 text-yellow-400 shrink-0" />
+                <p className="text-sm text-yellow-200">
+                  {(() => {
+                    const n = daysLeft(new Date(planExpiresAt));
+                    return t(`Trial PRO berakhir dalam ${n} hari`, `PRO trial ends in ${n} ${n === 1 ? 'day' : 'days'}`);
+                  })()}
+                </p>
+              </div>
+              <Link
+                href="/dashboard/upgrade"
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 hover:bg-yellow-500/30 transition-colors"
+              >
+                {t('Upgrade', 'Upgrade')}
+              </Link>
+            </div>
+          )}
           {children}
         </div>
       </main>

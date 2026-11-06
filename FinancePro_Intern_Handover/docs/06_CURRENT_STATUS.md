@@ -4,6 +4,8 @@ Audit: 29 September 2026 · commit `f95acfd` · membaca seluruh `lib/`, `middlew
 
 > **Kesimpulan singkat:** fitur inti (transaksi, rekening, hutang, aset, budget, goals, laporan, dashboard, admin) **sudah ada dan tampak lengkap**. Yang belum ada adalah semua yang membuat produk **layak dijual & aman**: landing page, email, trial, pembayaran, kedaluwarsa plan, dan **penegakan aturan plan di server**. Ditambah beberapa celah keamanan yang harus ditutup sebelum rilis.
 
+> **Pembaruan 24 Oktober 2026:** temuan kritis nomor 1–5, 7, dan 8 di bagian A sudah ditutup di kode (P0-1 … P0-5), landing page publik dan halaman Terms/Privacy sudah ada, serta bahasa ID/EN dan mata uang tampilan sudah berjalan. Temuan nomor 6 (bot Telegram tanpa otorisasi) **masih terbuka**. Status per task yang terkini ada di bagian "Status pengerjaan" pada `07_TASK_BACKLOG.md`; tabel di bawah adalah hasil audit awal (29 September 2026).
+
 Ikon: ✅ selesai · 🟡 sebagian · ❌ belum ada · 🐞 ada bug.
 
 ---

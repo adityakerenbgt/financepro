@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser(req);
     if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
 
-    return NextResponse.json({ authenticated: true, username: user.username, role: user.role, plan: user.plan }, { status: 200 });
+    return NextResponse.json({ authenticated: true, username: user.username, role: user.role, plan: user.plan, planExpiresAt: user.planExpiresAt ?? null, isTrial: !!user.isTrial }, { status: 200 });
   } catch {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }

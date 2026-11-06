@@ -15,10 +15,14 @@ model User {
   role           UserRole      @default(USER)
   plan           UserPlan      @default(FREE)
   planExpiresAt  DateTime?
+  trialEndsAt    DateTime?
+  termsAcceptedAt DateTime?
   displayName    String?
   createdAt      DateTime      @default(now())
   lastLogin      DateTime?
   profile        UserProfile?
+  passwordResetTokens PasswordResetToken[]
+  paymentRequests PaymentRequest[]
   accounts       Account[]
   categories     Category[]
   transactions   Transaction[]
@@ -49,8 +53,52 @@ model UserProfile {
   startDate     DateTime @default(now())
   targetSavings Float?
   targetExpense Float?
+  onboardingDismissedAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+enum PaymentPlan {
+  PRO_MONTHLY
+  PRO_YEARLY
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Permintaan pembayaran PRO (transfer manual + bukti). `amount` dalam Rupiah, selalu dihitung server dari lib/plans.ts.
+model PaymentRequest {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         PaymentPlan
+  amount       Int
+  proofPath    String        @unique // path objek di bucket privat `payment-proofs`
+  status       PaymentStatus @default(PENDING)
+  userNote     String?
+  adminNote    String?
+  createdAt    DateTime      @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Token reset password. Yang disimpan hanya hash SHA-256; token asli hanya ada di email user.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Category {

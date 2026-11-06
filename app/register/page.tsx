@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, Eye, EyeOff, Check } from 'lucide-react';
 import { useLang } from '../i18n';
+import { TRIAL_DAYS } from '@/lib/plans';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function RegisterPage() {
@@ -18,6 +19,7 @@ export default function RegisterPage() {
     confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -35,7 +37,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, acceptTerms }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -126,13 +128,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">Email</label>
+              <label className="text-sm text-slate-400 mb-1 block">Email <span className="text-red-400">*</span></label>
               <input
                 name="email"
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder={t('email@kamu.com (opsional)', 'you@email.com (optional)')}
+                required
+                placeholder="email@kamu.com"
                 className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-500"
               />
             </div>
@@ -189,9 +192,26 @@ export default function RegisterPage() {
               )}
             </div>
 
+            <label className="flex items-start gap-2.5 text-sm text-slate-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={e => { setAcceptTerms(e.target.checked); setError(''); }}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 accent-blue-600"
+              />
+              <span>
+                {t('Saya setuju dengan', 'I agree to the')}{' '}
+                <Link href="/terms" target="_blank" className="text-blue-400 hover:underline">{t('Syarat & Ketentuan', 'Terms of Service')}</Link>
+                {' '}{t('dan', 'and')}{' '}
+                <Link href="/privacy" target="_blank" className="text-blue-400 hover:underline">{t('Kebijakan Privasi', 'Privacy Policy')}</Link>
+                <span className="text-red-400"> *</span>
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={loading || (!!form.confirmPassword && form.password !== form.confirmPassword)}
+              disabled={loading || !acceptTerms || (!!form.confirmPassword && form.password !== form.confirmPassword)}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors mt-2"
             >
               {loading ? t('Membuat akun...', 'Creating account...') : t('Buat Akun Gratis', 'Create Free Account')}
@@ -208,7 +228,10 @@ export default function RegisterPage() {
 
         {/* Free plan info */}
         <div className="mt-4 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-400">
-          <p className="text-white font-medium mb-2">{t('Akun Free sudah termasuk:', 'The Free account includes:')}</p>
+          <p className="mb-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-yellow-300">
+            {t(`Gratis coba semua fitur PRO selama ${TRIAL_DAYS} hari, tanpa kartu kredit.`, `Try every PRO feature free for ${TRIAL_DAYS} days, no credit card needed.`)}
+          </p>
+          <p className="text-white font-medium mb-2">{t('Setelah trial, akun Free sudah termasuk:', 'After the trial, the Free account includes:')}</p>
           <ul className="space-y-1">
             {[t('Catat transaksi (unlimited)', 'Unlimited transaction logging'), t('Dashboard keuangan', 'Finance dashboard'), t('Laporan bulanan', 'Monthly report'), t('Telegram bot', 'Telegram bot')].map(f => (
               <li key={f} className="flex items-center gap-2">

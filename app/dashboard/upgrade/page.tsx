@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { FREE_FEATURES_I18N, PRO_FEATURES_I18N, PRICING } from '@/lib/plans';
 import { useLang } from '@/app/i18n';
 import { formatMoney } from '@/lib/currency';
+import PaymentRequestForm from '@/app/components/PaymentRequestForm';
 
 export default function UpgradePage() {
   const { plan, role } = useAuth();
@@ -96,7 +97,7 @@ export default function UpgradePage() {
                 <p className="font-medium text-white mb-2">{t('Cara upgrade:', 'How to upgrade:')}</p>
                 <ol className="space-y-1 list-decimal list-inside text-slate-400">
                   <li>{t('Transfer ke rekening di bawah', 'Transfer to the account below')}</li>
-                  <li>{t('Kirim bukti ke WhatsApp/email', 'Send the proof via WhatsApp/email')}</li>
+                  <li>{t('Unggah bukti transfer di formulir pembayaran', 'Upload the proof in the payment form')}</li>
                   <li>{t('Akun diaktifkan dalam 1x24 jam', 'Your account is activated within 24 hours')}</li>
                 </ol>
               </div>
@@ -106,17 +107,17 @@ export default function UpgradePage() {
                 <p className="text-slate-400 text-xs">{t('a.n.', 'a/n')} Virgian Galang</p>
               </div>
               <a
-                href="https://wa.me/628xxxxxxxxxx?text=Halo,%20saya%20mau%20upgrade%20FinancePro%20PRO"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#bayar"
                 className="block w-full text-center bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-yellow-500/20"
               >
-                {t('Hubungi untuk Upgrade', 'Contact us to Upgrade')}
+                {t('Ajukan Pembayaran', 'Submit Payment')}
               </a>
             </div>
           )}
         </div>
       </div>
+
+      {role !== 'ADMIN' && <PaymentRequestForm />}
 
       <p className="text-center text-slate-500 text-sm">
         {t('Ada pertanyaan?', 'Questions?')}{' '}

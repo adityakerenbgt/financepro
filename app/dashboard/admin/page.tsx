@@ -13,6 +13,7 @@ interface AppUser {
   role: 'ADMIN' | 'USER';
   plan: 'FREE' | 'PRO';
   planExpiresAt: string | null;
+  isTrial?: boolean;
   createdAt: string;
 }
 
@@ -341,6 +342,11 @@ export default function AdminPage() {
                         <span className="inline-flex items-center gap-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full text-xs font-bold">
                           <Sparkles className="w-3 h-3" /> PRO
                         </span>
+                        {u.isTrial && (
+                          <span className="ml-1 inline-flex items-center bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full text-xs font-bold" title={t('Masa trial 14 hari, belum membayar', '14-day trial, not paid yet')}>
+                            TRIAL
+                          </span>
+                        )}
                         {u.planExpiresAt && (
                           <p className="text-xs text-slate-500 mt-0.5">
                             {t('s/d', 'until')} {new Date(u.planExpiresAt).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' })}

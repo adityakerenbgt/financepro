@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import prisma from './db';
 import { JWT_SECRET } from './env';
-import { getEffectivePlan } from './plan';
+import { getEffectivePlan, isTrial } from './plan';
 
 export interface AuthUser {
   userId: string;
@@ -10,6 +10,9 @@ export interface AuthUser {
   role: 'ADMIN' | 'USER';
   // Dari JWT: bisa basi sampai 30 hari. Jangan dipakai untuk keputusan akses; pakai getCurrentUser/requirePro.
   plan: 'FREE' | 'PRO';
+  // Hanya terisi dari getCurrentUser (data DB terbaru)
+  planExpiresAt?: string | null;
+  isTrial?: boolean;
 }
 
 export function getUserFromRequest(req: NextRequest): AuthUser | null {
@@ -29,7 +32,7 @@ export async function getCurrentUser(req: NextRequest): Promise<AuthUser | null>
   if (!tokenUser) return null;
   const dbUser = await prisma.user.findUnique({
     where: { id: tokenUser.userId },
-    select: { id: true, username: true, role: true, plan: true, planExpiresAt: true },
+    select: { id: true, username: true, role: true, plan: true, planExpiresAt: true, trialEndsAt: true },
   });
   if (!dbUser) return null;
   return {
@@ -37,6 +40,8 @@ export async function getCurrentUser(req: NextRequest): Promise<AuthUser | null>
     username: dbUser.username,
     role: dbUser.role,
     plan: getEffectivePlan(dbUser),
+    planExpiresAt: dbUser.planExpiresAt ? dbUser.planExpiresAt.toISOString() : null,
+    isTrial: isTrial(dbUser),
   };
 }
 

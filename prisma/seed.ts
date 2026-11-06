@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { DEFAULT_CATEGORIES } from '../lib/defaultCategories';
 
 const prisma = new PrismaClient();
 
@@ -41,23 +42,7 @@ async function main() {
   console.log('✓ Admin profile created');
 
   // ---- Categories (per user) ----
-  const categoryDefs = [
-    { name: 'Makan & Minum', type: 'expense' },
-    { name: 'Transportasi', type: 'expense' },
-    { name: 'Belanja', type: 'expense' },
-    { name: 'Hiburan', type: 'expense' },
-    { name: 'Kesehatan', type: 'expense' },
-    { name: 'Pendidikan', type: 'expense' },
-    { name: 'Tagihan', type: 'expense' },
-    { name: 'Cicilan', type: 'expense' },
-    { name: 'Pembayaran Utang', type: 'expense' },
-    { name: 'Lainnya', type: 'expense' },
-    { name: 'Gaji', type: 'income' },
-    { name: 'Freelance', type: 'income' },
-    { name: 'Bonus', type: 'income' },
-    { name: 'Investasi', type: 'income' },
-    { name: 'Transfer Masuk', type: 'income' },
-  ];
+  const categoryDefs = DEFAULT_CATEGORIES;
 
   for (const cat of categoryDefs) {
     await prisma.category.upsert({

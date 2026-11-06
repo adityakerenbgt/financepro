@@ -13,6 +13,7 @@ import type { DashboardData } from '@/types';
 import { formatMoney as formatRp, formatCompactMoney } from '@/lib/currency';
 import { useLang } from '@/app/i18n';
 import { translateTip } from '@/lib/labels';
+import OnboardingChecklist from '@/app/components/OnboardingChecklist';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];
 
@@ -101,6 +102,8 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      <OnboardingChecklist />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">

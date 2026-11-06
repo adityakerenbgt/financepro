@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getEffectivePlan } from '@/lib/plan';
+import { getEffectivePlan, isTrial } from '@/lib/plan';
 import { rateLimit, resetRateLimit, getClientIp, tooManyRequests } from '@/lib/rateLimit';
 
 const LOGIN_LIMIT = 5;
@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
       username: user.username,
       role: user.role,
       plan: getEffectivePlan(user),
+      planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
+      isTrial: isTrial(user),
     }, { status: 200 });
 
     response.cookies.set('auth-token', token, {

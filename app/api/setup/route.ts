@@ -54,6 +54,8 @@ export async function POST(req: NextRequest) {
           userId: user.userId,
           name: body.name || 'User',
           currency: body.currency || 'IDR',
+          targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
+          targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
         },
       });
       return NextResponse.json(profile);
@@ -102,7 +104,13 @@ export async function PUT(req: NextRequest) {
         targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
         targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
       },
-      create: { userId: user.userId, name: body.name || 'User', currency: body.currency || 'IDR' },
+      create: {
+        userId: user.userId,
+        name: body.name || 'User',
+        currency: body.currency || 'IDR',
+        targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
+        targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
+      },
     });
     return NextResponse.json(profile);
   } catch (error: any) {

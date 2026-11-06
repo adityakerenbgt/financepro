@@ -578,6 +578,8 @@ export default function LandingContent() {
             <a href="#faq" className="transition hover:text-[#f8fafc]">FAQ</a>
             <Link href="/login" className="transition hover:text-[#f8fafc]">{t('Masuk', 'Log in')}</Link>
             <Link href="/register" className="transition hover:text-[#f8fafc]">{t('Daftar', 'Sign up')}</Link>
+            <Link href="/terms" className="transition hover:text-[#f8fafc]">{t('Syarat & Ketentuan', 'Terms')}</Link>
+            <Link href="/privacy" className="transition hover:text-[#f8fafc]">{t('Kebijakan Privasi', 'Privacy')}</Link>
             <a href="mailto:hello@grexion.ai" className="inline-flex items-center gap-1.5 transition hover:text-[#f8fafc]"><MessageCircle className="h-4 w-4" />{t('Kontak', 'Contact')}</a>
           </nav>
           <p className="text-sm text-[#64748b]">&copy; {new Date().getFullYear()} FinancePro. {t('Dibuat di Indonesia.', 'Made in Indonesia.')}</p>
