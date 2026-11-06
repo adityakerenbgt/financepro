@@ -8,6 +8,7 @@ import { FREE_FEATURES_I18N, PRO_FEATURES_I18N, PRICING } from '@/lib/plans';
 import { useLang } from '@/app/i18n';
 import { formatMoney } from '@/lib/currency';
 import PaymentRequestForm from '@/app/components/PaymentRequestForm';
+import WhatsAppPayButton from '@/app/components/WhatsAppPayButton';
 
 export default function UpgradePage() {
   const { plan, role } = useAuth();
@@ -96,21 +97,18 @@ export default function UpgradePage() {
               <div className="bg-slate-800/60 border border-slate-600 rounded-xl p-4 text-sm text-slate-300">
                 <p className="font-medium text-white mb-2">{t('Cara upgrade:', 'How to upgrade:')}</p>
                 <ol className="space-y-1 list-decimal list-inside text-slate-400">
-                  <li>{t('Transfer ke rekening di bawah', 'Transfer to the account below')}</li>
-                  <li>{t('Unggah bukti transfer di formulir pembayaran', 'Upload the proof in the payment form')}</li>
-                  <li>{t('Akun diaktifkan dalam 1x24 jam', 'Your account is activated within 24 hours')}</li>
+                  <li>{t('Chat admin via WhatsApp untuk mendapat info pembayaran', 'Chat the admin on WhatsApp to get the payment details')}</li>
+                  <li>{t('Transfer sesuai nominal paket', 'Transfer the exact plan amount')}</li>
+                  <li>{t('Unggah bukti transfer di formulir pembayaran di bawah', 'Upload the proof in the payment form below')}</li>
+                  <li>{t('Admin mengonfirmasi dan PRO aktif dalam 1x24 jam', 'The admin confirms and PRO is activated within 24 hours')}</li>
                 </ol>
               </div>
-              <div className="bg-slate-800/60 border border-slate-600 rounded-xl p-4 text-sm">
-                <p className="text-slate-400 text-xs mb-2">{t('Rekening pembayaran:', 'Payment account:')}</p>
-                <p className="text-white font-mono font-semibold">BCA — 1234567890</p>
-                <p className="text-slate-400 text-xs">{t('a.n.', 'a/n')} Virgian Galang</p>
-              </div>
+              <WhatsAppPayButton />
               <a
                 href="#bayar"
                 className="block w-full text-center bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-yellow-500/20"
               >
-                {t('Ajukan Pembayaran', 'Submit Payment')}
+                {t('Sudah transfer? Unggah Bukti', 'Already paid? Upload Proof')}
               </a>
             </div>
           )}

@@ -93,7 +93,7 @@ Aturan proyek: file ideal < 400 baris, maksimum 800. File di atas ±450 baris la
 | Ambil data dropdown (kategori/rekening) | `useSetupData()` dari `app/hooks.ts` |
 | Tambah command Telegram | `lib/telegramBot.ts` |
 | Ubah rute yang dilindungi login | `PROTECTED_ROUTES` di `middleware.ts` |
-| Ubah teks/harga di halaman upgrade | `app/dashboard/upgrade/page.tsx` (nomor WA masih placeholder `628xxxxxxxxxx`, rekening BCA placeholder) |
+| Ubah teks/harga di halaman upgrade | `app/dashboard/upgrade/page.tsx` (nomor WA dari env `NEXT_PUBLIC_WHATSAPP_NUMBER`; tidak ada data rekening di aplikasi, info rekening diberikan admin lewat WhatsApp) |
 | Tambah env var | `templates/.env.example` + `docs/09_LOCAL_SETUP.md` |
 
 ## File yang JANGAN kamu sentuh tanpa bicara ke mentor

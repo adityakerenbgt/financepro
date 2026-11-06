@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { requireAdminUser } from '@/lib/auth';
-import { approvePayment, rejectPayment } from '@/lib/payments';
+import { approvePayment, rejectPayment, notifyPaymentReviewed } from '@/lib/payments';
 
 const STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 
@@ -68,7 +68,9 @@ export async function PATCH(req: NextRequest) {
         ? NextResponse.json({ error: 'Permintaan tidak ditemukan' }, { status: 404 })
         : NextResponse.json({ error: 'Permintaan ini sudah diproses' }, { status: 409 });
     }
-    return NextResponse.json({ success: true, planExpiresAt: result.planExpiresAt, planUnchanged: result.planUnchanged });
+    // planExpiresAt untuk email: pada PRO tanpa batas nilainya null (email menyebut "tanpa batas waktu").
+    const emailStatus = await notifyPaymentReviewed(id, action, result.planExpiresAt);
+    return NextResponse.json({ success: true, planExpiresAt: result.planExpiresAt, planUnchanged: result.planUnchanged, emailStatus });
   } catch (err) {
     console.error('[admin/payments PATCH]', err instanceof Error ? err.message : err);
     return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 });

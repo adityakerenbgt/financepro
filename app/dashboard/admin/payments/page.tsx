@@ -37,6 +37,7 @@ export default function AdminPaymentsPage() {
   const [counts, setCounts] = useState({ PENDING: 0, APPROVED: 0, REJECTED: 0 });
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -63,6 +64,7 @@ export default function AdminPaymentsPage() {
   const review = async (id: string, action: 'approve' | 'reject', adminNote?: string) => {
     setBusyId(id);
     setError('');
+    setNotice('');
     try {
       const res = await fetch('/api/admin/payments', {
         method: 'PATCH',
@@ -71,7 +73,17 @@ export default function AdminPaymentsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setError(tError(data.error || 'Terjadi kesalahan server'));
-      else { setRejectId(null); setRejectNote(''); }
+      else {
+        setRejectId(null);
+        setRejectNote('');
+        const st = data.emailStatus as string | undefined;
+        setNotice(
+          st === 'sent' ? t('Email notifikasi terkirim ke user.', 'Notification email sent to the user.')
+          : st === 'skipped' ? t('Tersimpan. Email tidak dikirim karena layanan email belum dikonfigurasi.', 'Saved. No email was sent because the email service is not configured.')
+          : st === 'no_email' ? t('Tersimpan. User tidak punya email, jadi tidak ada notifikasi.', 'Saved. The user has no email, so no notification was sent.')
+          : t('Tersimpan, tetapi email notifikasi gagal dikirim.', 'Saved, but the notification email failed to send.'),
+        );
+      }
       await load();
     } catch {
       setError(t('Terjadi kesalahan. Coba lagi.', 'Something went wrong. Please try again.'));
@@ -120,6 +132,7 @@ export default function AdminPaymentsPage() {
         ))}
       </div>
 
+      {notice && <div className="bg-blue-500/10 border border-blue-500/30 text-blue-300 text-sm px-4 py-3 rounded-lg">{notice}</div>}
       {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">{error}</div>}
 
       {fetching && items.length === 0 ? (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Clock, Upload, XCircle } from 'lucide-react';
 import { useLang, localeOf } from '../i18n';
 import { PAYMENT_PLANS, formatRupiah, type PaymentPlanKey } from '@/lib/plans';
+import WhatsAppPayButton from './WhatsAppPayButton';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -111,7 +112,8 @@ export default function PaymentRequestForm() {
     <section id="bayar" className="bg-slate-800 border border-slate-700 rounded-2xl p-6 scroll-mt-20">
       <h2 className="text-lg font-bold text-white mb-1">{t('Ajukan Pembayaran', 'Submit Payment')}</h2>
       <p className="text-sm text-slate-400 mb-5">
-        {t('Setelah transfer, unggah bukti pembayaran. Admin akan mengonfirmasi dan mengaktifkan PRO.', 'After transferring, upload the proof of payment. An admin will confirm and activate PRO.')}
+        {t('Info pembayaran diberikan admin lewat WhatsApp. Setelah transfer, unggah bukti di sini; admin akan mengonfirmasi dan mengaktifkan PRO.', 'The admin shares the payment details on WhatsApp. After transferring, upload the proof here; the admin will confirm and activate PRO.')}
+        {' '}<WhatsAppPayButton plan={plan} variant="link" />
       </p>
 
       {success && (
