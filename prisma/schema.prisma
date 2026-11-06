@@ -18,6 +18,8 @@ model User {
   trialEndsAt    DateTime?
   // Tanggal kedaluwarsa (planExpiresAt) yang sudah dikirimi pengingat; mencegah email ganda per periode.
   renewalReminderSentFor DateTime?
+  // Awal pekan (Senin) yang digest-nya sudah diproses (terkirim atau dilewati karena tanpa aktivitas).
+  lastDigestWeek DateTime?
   termsAcceptedAt DateTime?
   displayName    String?
   createdAt      DateTime      @default(now())
@@ -56,6 +58,7 @@ model UserProfile {
   targetSavings Float?
   targetExpense Float?
   onboardingDismissedAt DateTime?
+  emailDigest   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

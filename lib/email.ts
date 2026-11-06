@@ -6,6 +6,8 @@ export interface EmailMessage {
   subject: string;
   html: string;
   text: string;
+  // Header tambahan, mis. List-Unsubscribe untuk email berlangganan.
+  headers?: Record<string, string>;
 }
 
 export interface EmailResult {
@@ -35,7 +37,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
     const res = await fetch(RESEND_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [msg.to], subject: msg.subject, html: msg.html, text: msg.text }),
+      body: JSON.stringify({ from, to: [msg.to], subject: msg.subject, html: msg.html, text: msg.text, ...(msg.headers ? { headers: msg.headers } : {}) }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) {

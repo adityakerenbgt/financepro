@@ -18,7 +18,7 @@ const CAT_TYPES = ['income', 'expense', 'both'];
 export default function SettingsPage() {
   const { t, lang } = useLang();
   const { currency: displayCurrency } = useCurrency();
-  const [profile, setProfile] = useState({ name: '', currency: 'IDR', targetSavings: '', targetExpense: '' });
+  const [profile, setProfile] = useState({ name: '', currency: 'IDR', targetSavings: '', targetExpense: '', emailDigest: true });
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +57,7 @@ export default function SettingsPage() {
             currency: profileData.profile.currency || 'IDR',
             targetSavings: profileData.profile.targetSavings?.toString() || '',
             targetExpense: profileData.profile.targetExpense?.toString() || '',
+            emailDigest: profileData.profile.emailDigest !== false,
           });
         }
         setCategories(catList);
@@ -239,6 +240,18 @@ export default function SettingsPage() {
             <RpInput value={profile.targetExpense} onChange={v => setProfile({...profile, targetExpense: v})} placeholder="10.000.000" />
           </div>
         </div>
+        <label className="flex items-start gap-2.5 text-sm text-slate-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={profile.emailDigest}
+            onChange={e => setProfile({ ...profile, emailDigest: e.target.checked })}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-blue-600"
+          />
+          <span>
+            {t('Kirim ringkasan keuangan mingguan lewat email', 'Send me a weekly finance summary by email')}
+            <span className="block text-xs text-slate-500">{t('Dikirim setiap Senin pagi bila ada transaksi di pekan sebelumnya.', 'Sent every Monday morning if there were transactions the previous week.')}</span>
+          </span>
+        </label>
         <button onClick={handleSaveProfile} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" />
           {saving ? t('Menyimpan...', 'Saving...') : saved ? t('✓ Tersimpan!', '✓ Saved!') : t('Simpan Profil', 'Save Profile')}

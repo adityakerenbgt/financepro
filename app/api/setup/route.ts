@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
           currency: body.currency,
           targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
           targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
+          emailDigest: typeof body.emailDigest === 'boolean' ? body.emailDigest : undefined,
         },
         create: {
           userId: user.userId,
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
           currency: body.currency || 'IDR',
           targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
           targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
+          emailDigest: typeof body.emailDigest === 'boolean' ? body.emailDigest : undefined,
         },
       });
       return NextResponse.json(profile);
@@ -103,6 +105,7 @@ export async function PUT(req: NextRequest) {
         currency: body.currency,
         targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
         targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
+          emailDigest: typeof body.emailDigest === 'boolean' ? body.emailDigest : undefined,
       },
       create: {
         userId: user.userId,
@@ -110,6 +113,7 @@ export async function PUT(req: NextRequest) {
         currency: body.currency || 'IDR',
         targetSavings: body.targetSavings ? parseFloat(body.targetSavings) : null,
         targetExpense: body.targetExpense ? parseFloat(body.targetExpense) : null,
+          emailDigest: typeof body.emailDigest === 'boolean' ? body.emailDigest : undefined,
       },
     });
     return NextResponse.json(profile);
