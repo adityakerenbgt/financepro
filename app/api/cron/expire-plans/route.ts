@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash, timingSafeEqual } from 'crypto';
 import prisma from '@/lib/db';
+import { isCronAuthorized } from '@/lib/cronAuth';
 
 // Dipanggil terjadwal oleh Vercel Cron (GET). Vercel otomatis mengirim `Authorization: Bearer <CRON_SECRET>`
 // bila env CRON_SECRET diset. Tanpa secret yang cocok => 401 (tertutup bila CRON_SECRET tidak diset).
@@ -8,20 +8,8 @@ export const dynamic = 'force-dynamic';
 
 const RETENTION_MS = 24 * 60 * 60 * 1000;
 
-function sha(s: string): Buffer {
-  return createHash('sha256').update(s).digest();
-}
-
-function authorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const header = req.headers.get('authorization') ?? '';
-  // Bandingkan hash (panjang sama) dengan timingSafeEqual agar tidak bocor lewat waktu respons.
-  return timingSafeEqual(sha(header), sha(`Bearer ${secret}`));
-}
-
 export async function GET(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     const now = new Date();

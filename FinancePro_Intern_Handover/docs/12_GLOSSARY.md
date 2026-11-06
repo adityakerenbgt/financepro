@@ -68,7 +68,7 @@ Istilah domain keuangan & istilah yang dipakai di kode/UI. Nilai `enum` ditulis 
 | **USER / ADMIN** | Peran akun. ADMIN = pemilik, akses Admin Panel & dianggap PRO |
 | **FREE / PRO** | Paket. FREE gratis & terbatas; PRO berbayar (Rp29.000/bln atau Rp249.000/thn) |
 | **ProGate** | Komponen layar kunci "Fitur PRO" |
-| **Trial** | Percobaan PRO 14 hari saat mendaftar — *belum ada* (T-3.1) |
+| **Trial** | Percobaan PRO gratis saat mendaftar (`TRIAL_DAYS` = 3 hari di `lib/plans.ts`); dikenali dari `planExpiresAt == trialEndsAt` (T-3.1) |
 | **planExpiresAt** | Tanggal kedaluwarsa PRO (diisi admin; belum ditegakkan) |
 | **Plan efektif** | Plan yang berlaku setelah memperhitungkan kedaluwarsa (P0-4) |
 | **Downgrade** | Turun dari PRO ke FREE saat kedaluwarsa (T-4.1) |

@@ -30,7 +30,7 @@ UserPlan: FREE | PRO
 
 ## Fitur yang sudah ada
 - [x] Login / Logout
-- [x] Public signup (/register) — FREE plan + 14 hari trial PRO (BELUM DIIMPLEMENTASI, masih langsung FREE)
+- [x] Public signup (/register) — akun baru otomatis PRO selama `TRIAL_DAYS` hari (3 hari, `lib/plans.ts`), lalu kembali FREE
 - [x] Multi-user dengan data isolation per userId
 - [x] Admin Panel (/dashboard/admin) — kelola user, set PRO/FREE
 - [x] Dashboard (chart, summary)
@@ -54,7 +54,6 @@ UserPlan: FREE | PRO
 ## Yang BELUM ada (roadmap)
 - [ ] Landing page publik (/) — BLOCKER untuk launch
 - [ ] Email system (password reset, welcome, notifikasi)
-- [ ] Free trial 14 hari otomatis saat signup
 - [ ] Payment request system (upload bukti transfer, admin approve)
 - [ ] Subscription expiry auto-downgrade (cron job)
 - [ ] Renewal reminder email

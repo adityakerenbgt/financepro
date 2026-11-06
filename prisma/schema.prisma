@@ -16,6 +16,8 @@ model User {
   plan           UserPlan      @default(FREE)
   planExpiresAt  DateTime?
   trialEndsAt    DateTime?
+  // Tanggal kedaluwarsa (planExpiresAt) yang sudah dikirimi pengingat; mencegah email ganda per periode.
+  renewalReminderSentFor DateTime?
   termsAcceptedAt DateTime?
   displayName    String?
   createdAt      DateTime      @default(now())

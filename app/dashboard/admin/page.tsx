@@ -5,6 +5,7 @@ import { useAuth } from '@/app/auth-context';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Trash2, KeyRound, ShieldCheck, User, Pencil, Sparkles } from 'lucide-react';
 import { useLang, localeOf } from '@/app/i18n';
+import { TRIAL_DAYS } from '@/lib/plans';
 
 interface AppUser {
   id: string;
@@ -343,7 +344,7 @@ export default function AdminPage() {
                           <Sparkles className="w-3 h-3" /> PRO
                         </span>
                         {u.isTrial && (
-                          <span className="ml-1 inline-flex items-center bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full text-xs font-bold" title={t('Masa trial 14 hari, belum membayar', '14-day trial, not paid yet')}>
+                          <span className="ml-1 inline-flex items-center bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full text-xs font-bold" title={t(`Masa trial ${TRIAL_DAYS} hari, belum membayar`, `${TRIAL_DAYS}-day trial, not paid yet`)}>
                             TRIAL
                           </span>
                         )}

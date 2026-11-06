@@ -13,7 +13,7 @@ export const PAYMENT_PLANS: Record<PaymentPlanKey, { amount: number; months: num
 };
 
 // Lama trial PRO untuk akun baru (hari)
-export const TRIAL_DAYS = 14;
+export const TRIAL_DAYS = 3;
 
 // Hemat dibanding 12x bulanan (dibulatkan)
 export const YEARLY_SAVING_PERCENT = Math.round((1 - PRICING.proYearly / (PRICING.proMonthly * 12)) * 100);
