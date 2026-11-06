@@ -348,8 +348,8 @@ export default function AdminPage() {
                           </span>
                         )}
                         {u.planExpiresAt && (
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {t('s/d', 'until')} {new Date(u.planExpiresAt).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' })}
+                          <p className={`text-xs mt-0.5 ${new Date(u.planExpiresAt) < new Date() ? 'text-red-400' : 'text-slate-500'}`}>
+                            {new Date(u.planExpiresAt) < new Date() ? t('Kedaluwarsa', 'Expired') : t('s/d', 'until')} {new Date(u.planExpiresAt).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         )}
                       </div>
