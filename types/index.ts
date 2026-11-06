@@ -173,6 +173,9 @@ export interface MonthlyReport {
   }[];
 }
 
+export type { NetWorth } from '@/lib/netWorth';
+import type { NetWorth } from '@/lib/netWorth';
+
 export interface DashboardData {
   kpi: {
     totalIncome: number;
@@ -188,6 +191,8 @@ export interface DashboardData {
   investmentSummary: { assetType: string; value: number }[];
   goalsProgress: { name: string; target: number; current: number; progress: number }[];
   tips: string[];
+  // Net Worth (PRO). null = terkunci untuk paket FREE; undefined = tidak dihitung. Tidak terpengaruh filter tanggal.
+  netWorth?: NetWorth | null;
   // Diisi server: rentang yang benar-benar dipakai. restricted = plan FREE (dipaksa bulan berjalan).
   range?: { startDate?: string; endDate?: string; restricted: boolean; adjusted: boolean };
 }

@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
 
     // FREE: rentang dipaksa ke bulan berjalan (WIB); parameter klien diabaikan. Penanda `range` dikirim ke UI.
     const range = resolveDashboardRange(isPro(user) ? 'PRO' : 'FREE', { startDate, endDate });
-    const data = await getDashboardData(user.userId, range.startDate, range.endDate);
+    // Net Worth memakai data PRO (aset, hutang): untuk FREE tidak dihitung sama sekali dan dikirim null (terkunci).
+    const data = await getDashboardData(user.userId, range.startDate, range.endDate, { includeNetWorth: isPro(user) });
     return NextResponse.json({
       ...data,
       range: { startDate: range.startDate, endDate: range.endDate, restricted: range.restricted, adjusted: range.adjusted },

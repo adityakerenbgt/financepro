@@ -15,6 +15,7 @@ import { useLang, localeOf } from '@/app/i18n';
 import { translateTip } from '@/lib/labels';
 import OnboardingChecklist from '@/app/components/OnboardingChecklist';
 import DateRangePresets from '@/app/components/DateRangePresets';
+import NetWorthCard from '@/app/components/NetWorthCard';
 import { useAuth } from '@/app/auth-context';
 import type { PresetKey } from '@/lib/dateRange';
 import Link from 'next/link';
@@ -149,6 +150,8 @@ export default function DashboardPage() {
       )}
 
       <OnboardingChecklist />
+
+      {data.netWorth !== undefined && <NetWorthCard netWorth={data.netWorth} />}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">

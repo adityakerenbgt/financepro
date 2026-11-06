@@ -10,6 +10,7 @@ import type {
 } from '@/types';
 import { startOfDay, endOfDay } from 'date-fns';
 import { getOrCreateAccount } from './planLimits';
+import { computeNetWorth, type NetWorth } from './netWorth';
 
 // ============================================================
 // TRANSACTIONS
@@ -308,7 +309,17 @@ export async function getMonthlyReport(userId: string, month: string) {
 // DASHBOARD DATA
 // ============================================================
 
-export async function getDashboardData(userId: string, startDate?: string, endDate?: string): Promise<DashboardData> {
+// Net Worth saat ini (titik waktu "sekarang"; tidak mengikuti filter tanggal). Lihat lib/netWorth.ts untuk rumus.
+export async function getNetWorth(userId: string): Promise<NetWorth> {
+  const [accounts, assets, debts] = await Promise.all([
+    prisma.account.findMany({ where: { userId }, select: { balance: true, isDebt: true } }),
+    prisma.asset.findMany({ where: { userId }, select: { currentValue: true } }),
+    getDebtSummaries(userId),
+  ]);
+  return computeNetWorth(accounts, assets, debts);
+}
+
+export async function getDashboardData(userId: string, startDate?: string, endDate?: string, opts: { includeNetWorth?: boolean } = {}): Promise<DashboardData> {
   const dateFilter: any = {};
   if (startDate) dateFilter.gte = parseDate(startDate);
   if (endDate) dateFilter.lte = endOfDay(parseDate(endDate));
@@ -317,13 +328,14 @@ export async function getDashboardData(userId: string, startDate?: string, endDa
   const txWhere: any = { userId };
   if (hasDateFilter) txWhere.date = dateFilter;
 
-  const [txns, savingsItems, debts, assets, budgets, goals] = await Promise.all([
+  const [txns, savingsItems, debts, assets, budgets, goals, accountRows] = await Promise.all([
     prisma.transaction.findMany({ where: txWhere, include: { category: true }, orderBy: { date: 'asc' } }),
     prisma.savingsInvestment.findMany({ where: hasDateFilter ? { userId, date: dateFilter } : { userId } }),
     getDebtSummaries(userId),
     getAssetSummaries(userId),
     getBudgetSummaries(userId),
     getGoalSummaries(userId),
+    opts.includeNetWorth === false ? Promise.resolve([]) : prisma.account.findMany({ where: { userId }, select: { balance: true, isDebt: true } }),
   ]);
 
   const totalIncome = txns.filter(t => t.type === 'Pemasukan').reduce((s, t) => s + t.amount, 0);
@@ -360,7 +372,10 @@ export async function getDashboardData(userId: string, startDate?: string, endDa
   goals.forEach(g => { if (g.status === 'Gagal') tips.push(`❌ Goal "${g.goalName}" sudah melewati deadline.`); else if (g.progress > 75) tips.push(`✅ Goal "${g.goalName}" hampir tercapai!`); });
   if (tips.length === 0) tips.push('👍 Keuangan Anda dalam kondisi baik. Pertahankan!');
 
-  return { kpi: { totalIncome, totalExpense, totalSavings, newDebt, accountTurnover: totalIncome + totalExpense, budgetRealisation }, moneyFlow, spendingOverview, expensesSummary, investmentSummary, goalsProgress, tips };
+  // Net Worth memakai ringkasan hutang & aset yang sudah diambil di atas (tanpa query ulang). Dilewati bila tidak berhak (FREE).
+  const netWorth = opts.includeNetWorth === false ? null : computeNetWorth(accountRows, assets, debts);
+
+  return { kpi: { totalIncome, totalExpense, totalSavings, newDebt, accountTurnover: totalIncome + totalExpense, budgetRealisation }, moneyFlow, spendingOverview, expensesSummary, investmentSummary, goalsProgress, tips, netWorth };
 }
 
 // ============================================================
