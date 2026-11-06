@@ -11,9 +11,13 @@ import {
 } from 'recharts';
 import type { DashboardData } from '@/types';
 import { formatMoney as formatRp, formatCompactMoney } from '@/lib/currency';
-import { useLang } from '@/app/i18n';
+import { useLang, localeOf } from '@/app/i18n';
 import { translateTip } from '@/lib/labels';
 import OnboardingChecklist from '@/app/components/OnboardingChecklist';
+import DateRangePresets from '@/app/components/DateRangePresets';
+import { useAuth } from '@/app/auth-context';
+import type { PresetKey } from '@/lib/dateRange';
+import Link from 'next/link';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];
 
@@ -36,6 +40,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export default function DashboardPage() {
   const { t, lang } = useLang();
+  const { role, plan } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -67,6 +72,19 @@ export default function DashboardPage() {
     );
   }
 
+  // Paket FREE hanya boleh melihat bulan berjalan. Server yang memutuskan (data.range.restricted);
+  // sebelum data pertama tiba kita menebak dari plan di klien supaya tampilan tidak "berkedip".
+  const restricted = data?.range?.restricted ?? (role !== 'ADMIN' && plan !== 'PRO');
+  // Untuk FREE, tampilkan rentang yang benar-benar berlaku dari server (bukan kolom kosong).
+  const shownStart = restricted ? (data?.range?.startDate ?? '') : startDate;
+  const shownEnd = restricted ? (data?.range?.endDate ?? '') : endDate;
+  const lockedKeys: PresetKey[] = restricted ? ['lastMonth', 'last7', 'last30', 'last3m', 'thisYear', 'all'] : [];
+  const fmtDay = (s?: string) => {
+    if (!s) return '';
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   if (!data) {
     return <div className="text-center text-slate-400 py-20">{t('Gagal memuat data dashboard.', 'Failed to load dashboard data.')}</div>;
   }
@@ -81,27 +99,54 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-sm text-slate-400">{t('Ringkasan keuangan Anda', 'Your financial summary')}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="input-field text-sm"
-            placeholder={t('Dari', 'From')}
+        <div className="flex flex-col items-start sm:items-end gap-2">
+          <DateRangePresets
+            startDate={shownStart}
+            endDate={shownEnd}
+            onChange={(s, e) => { setStartDate(s); setEndDate(e); }}
+            lockedKeys={lockedKeys}
+            // "Bulan ini" tetap bisa dipakai di paket FREE: server selalu memberlakukan bulan berjalan
           />
-          <span className="text-slate-500">—</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="input-field text-sm"
-            placeholder={t('Sampai', 'To')}
-          />
-          <button onClick={fetchData} className="btn-primary text-sm px-3 py-2">
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="date"
+              value={shownStart}
+              onChange={(e) => setStartDate(e.target.value)}
+              disabled={restricted}
+              title={restricted ? t('Rentang tanggal hanya tersedia di paket PRO', 'Custom date ranges are available on the PRO plan') : undefined}
+              className="input-field text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              placeholder={t('Dari', 'From')}
+            />
+            <span className="text-slate-500">—</span>
+            <input
+              type="date"
+              value={shownEnd}
+              onChange={(e) => setEndDate(e.target.value)}
+              disabled={restricted}
+              title={restricted ? t('Rentang tanggal hanya tersedia di paket PRO', 'Custom date ranges are available on the PRO plan') : undefined}
+              className="input-field text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              placeholder={t('Sampai', 'To')}
+            />
+            <button onClick={fetchData} className="btn-primary text-sm px-3 py-2">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {restricted && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3">
+          <p className="text-sm text-yellow-200">
+            {data.range?.startDate && data.range?.endDate
+              ? t(`Paket FREE menampilkan bulan berjalan saja (${fmtDay(data.range.startDate)} – ${fmtDay(data.range.endDate)}).`, `The FREE plan shows the current month only (${fmtDay(data.range.startDate)} – ${fmtDay(data.range.endDate)}).`)
+              : t('Paket FREE menampilkan bulan berjalan saja.', 'The FREE plan shows the current month only.')}{' '}
+            {t('Upgrade ke PRO untuk memilih rentang lain.', 'Upgrade to PRO to choose other ranges.')}
+          </p>
+          <Link href="/dashboard/upgrade" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 hover:bg-yellow-500/30 transition-colors">
+            {t('Upgrade', 'Upgrade')}
+          </Link>
+        </div>
+      )}
 
       <OnboardingChecklist />
 

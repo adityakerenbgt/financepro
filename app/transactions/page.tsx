@@ -8,6 +8,7 @@ import { RpInput } from '../components/RpInput';
 import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang, localeOf } from '@/app/i18n';
 import { fetchList } from '@/lib/clientFetch';
+import DateRangePresets from '../components/DateRangePresets';
 
 const PAGE_SIZE = 25;
 
@@ -174,6 +175,11 @@ export default function TransactionsPage() {
               </select>
             </div>
             {/* Row 2: date range */}
+            <DateRangePresets
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => { setStartDate(s); setEndDate(e); resetPage(); }}
+            />
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs text-slate-400 w-14 shrink-0">{t('Periode', 'Period')}</span>
               <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); resetPage(); }} className="input-field text-sm" />

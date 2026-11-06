@@ -188,4 +188,6 @@ export interface DashboardData {
   investmentSummary: { assetType: string; value: number }[];
   goalsProgress: { name: string; target: number; current: number; progress: number }[];
   tips: string[];
+  // Diisi server: rentang yang benar-benar dipakai. restricted = plan FREE (dipaksa bulan berjalan).
+  range?: { startDate?: string; endDate?: string; restricted: boolean; adjusted: boolean };
 }

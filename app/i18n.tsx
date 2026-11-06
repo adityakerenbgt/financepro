@@ -49,6 +49,7 @@ const API_ERRORS_EN: Record<string, string> = {
   'Permintaan ini sudah diproses': 'This request has already been processed',
   'Penyimpanan bukti belum dikonfigurasi': 'Proof storage is not configured',
   'Tautan tidak valid': 'Invalid link',
+  'Format tanggal tidak valid': 'Invalid date format',
   'Fitur PRO': 'PRO feature',
   'Nama rekening sudah ada': 'Account name already exists',
   'Nama kategori sudah ada': 'Category name already exists',
