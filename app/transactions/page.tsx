@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Filter, RefreshCw, X, Pencil, Trash2, ArrowLeftRight, Search } from 'lucide-react';
+import { Plus, Filter, RefreshCw, X, Pencil, Trash2, ArrowLeftRight, Search, FileUp } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '../providers';
 import { useSetupData } from '../hooks';
 import { RpInput } from '../components/RpInput';
@@ -128,6 +129,9 @@ export default function TransactionsPage() {
           <p className="text-sm text-slate-400">{total} {t('transaksi total', 'transactions in total')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/dashboard/import" className="btn-secondary flex items-center gap-2">
+            <FileUp className="w-4 h-4" /> Import
+          </Link>
           <button onClick={() => setShowTransferForm(true)} className="btn-secondary flex items-center gap-2">
             <ArrowLeftRight className="w-4 h-4" /> Transfer
           </button>
