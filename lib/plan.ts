@@ -26,6 +26,25 @@ export function isTrial(user: TrialSource, now: Date = new Date()): boolean {
   return user.planExpiresAt.getTime() === user.trialEndsAt.getTime();
 }
 
+// Tambah bulan kalender (UTC). Tanggal yang tidak ada di bulan tujuan dipangkas ke hari terakhir bulan itu
+// (31 Jan + 1 bulan = 28/29 Feb), bukan melompat ke bulan berikutnya.
+export function addMonths(date: Date, months: number): Date {
+  const d = new Date(date.getTime());
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, lastDay));
+  return d;
+}
+
+// Masa aktif baru setelah pembayaran: dihitung dari yang lebih akhir antara sekarang dan masa aktif lama,
+// sehingga perpanjangan sebelum habis tidak menghilangkan sisa hari.
+export function extendedExpiry(current: Date | null, months: number, now: Date = new Date()): Date {
+  const base = current && current.getTime() > now.getTime() ? current : now;
+  return addMonths(base, months);
+}
+
 // Sisa hari (dibulatkan ke atas) sampai tanggal berakhir; 0 bila sudah lewat.
 export function daysLeft(until: Date, now: Date = new Date()): number {
   const ms = until.getTime() - now.getTime();

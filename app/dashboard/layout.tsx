@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   BarChart3, Wallet, TrendingUp, CreditCard, PieChart,
   Target, CalendarDays, Settings, Menu, X, Landmark,
-  Sun, Moon, ChevronLeft, ChevronRight, Building2, LogOut, ShieldCheck, Sparkles,
+  Sun, Moon, ChevronLeft, ChevronRight, Building2, LogOut, ShieldCheck, Sparkles, Receipt,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../providers';
@@ -19,6 +19,7 @@ import CurrencySwitcher from '../components/CurrencySwitcher';
 
 const allNavItems = [
   { href: '/dashboard/admin', label: 'Admin Panel', en: 'Admin Panel', icon: ShieldCheck, adminOnly: true },
+  { href: '/dashboard/admin/payments', label: 'Pembayaran', en: 'Payments', icon: Receipt, adminOnly: true },
   { href: '/dashboard',            label: 'Dashboard', en: 'Dashboard',         icon: BarChart3 },
   { href: '/transactions',         label: 'Transaksi', en: 'Transactions',         icon: Wallet },
   { href: '/dashboard/rekening',   label: 'Rekening', en: 'Accounts',          icon: Building2 },
