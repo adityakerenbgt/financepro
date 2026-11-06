@@ -71,6 +71,8 @@ export async function DELETE(req: NextRequest) {
 
     const txCount = await prisma.transaction.count({ where: { categoryId: id, userId: user.userId } });
     if (txCount > 0) return NextResponse.json({ error: `Kategori tidak bisa dihapus karena digunakan di ${txCount} transaksi` }, { status: 400 });
+    const recurringCount = await prisma.recurringTransaction.count({ where: { categoryId: id, userId: user.userId } });
+    if (recurringCount > 0) return NextResponse.json({ error: `Kategori tidak bisa dihapus karena dipakai ${recurringCount} transaksi berulang` }, { status: 400 });
 
     await prisma.category.delete({ where: { id } });
     return NextResponse.json({ success: true });

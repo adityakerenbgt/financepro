@@ -11,6 +11,9 @@ export interface TransactionInput {
   type: 'Pemasukan' | 'Pengeluaran';
   amount: number;
   note?: string;
+  // Hanya dipakai mesin transaksi berulang: pasangan unik per jadwal & tanggal (idempotensi)
+  recurringId?: string;
+  recurringDate?: string; // YYYY-MM-DD
 }
 
 export interface SavingsInput {

@@ -34,7 +34,8 @@ export async function createTransaction(userId: string, input: TransactionInput)
   const account = await getOrCreateAccount(userId, input.account);
 
   const tx = await prisma.transaction.create({
-    data: { txId, userId, date, categoryId: category.id, description: input.description, accountId: account.id, type: input.type as TransactionType, amount: input.amount, note: input.note || null, month, week },
+    data: { txId, userId, date, categoryId: category.id, description: input.description, accountId: account.id, type: input.type as TransactionType, amount: input.amount, note: input.note || null, month, week,
+      recurringId: input.recurringId ?? null, recurringDate: input.recurringDate ? new Date(`${input.recurringDate}T00:00:00Z`) : null },
     include: { category: true, account: true },
   });
 

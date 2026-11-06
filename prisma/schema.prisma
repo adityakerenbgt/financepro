@@ -8,34 +8,35 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(cuid())
-  username       String        @unique
-  email          String?       @unique
-  password       String
-  role           UserRole      @default(USER)
-  plan           UserPlan      @default(FREE)
-  planExpiresAt  DateTime?
-  trialEndsAt    DateTime?
+  id                     String                 @id @default(cuid())
+  username               String                 @unique
+  email                  String?                @unique
+  password               String
+  role                   UserRole               @default(USER)
+  plan                   UserPlan               @default(FREE)
+  planExpiresAt          DateTime?
+  trialEndsAt            DateTime?
   // Tanggal kedaluwarsa (planExpiresAt) yang sudah dikirimi pengingat; mencegah email ganda per periode.
   renewalReminderSentFor DateTime?
   // Awal pekan (Senin) yang digest-nya sudah diproses (terkirim atau dilewati karena tanpa aktivitas).
-  lastDigestWeek DateTime?
-  termsAcceptedAt DateTime?
-  displayName    String?
-  createdAt      DateTime      @default(now())
-  lastLogin      DateTime?
-  profile        UserProfile?
-  passwordResetTokens PasswordResetToken[]
-  paymentRequests PaymentRequest[]
-  accounts       Account[]
-  categories     Category[]
-  transactions   Transaction[]
-  savings        SavingsInvestment[]
-  debts          Debt[]
-  assets         Asset[]
-  budgets        Budget[]
-  goals          Goal[]
-  transfers      Transfer[]
+  lastDigestWeek         DateTime?
+  termsAcceptedAt        DateTime?
+  displayName            String?
+  createdAt              DateTime               @default(now())
+  lastLogin              DateTime?
+  profile                UserProfile?
+  passwordResetTokens    PasswordResetToken[]
+  paymentRequests        PaymentRequest[]
+  recurring              RecurringTransaction[]
+  accounts               Account[]
+  categories             Category[]
+  transactions           Transaction[]
+  savings                SavingsInvestment[]
+  debts                  Debt[]
+  assets                 Asset[]
+  budgets                Budget[]
+  goals                  Goal[]
+  transfers              Transfer[]
 }
 
 enum UserRole {
@@ -49,18 +50,51 @@ enum UserPlan {
 }
 
 model UserProfile {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String   @default("User")
-  currency      String   @default("IDR")
-  startDate     DateTime @default(now())
-  targetSavings Float?
-  targetExpense Float?
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String    @default("User")
+  currency              String    @default("IDR")
+  startDate             DateTime  @default(now())
+  targetSavings         Float?
+  targetExpense         Float?
   onboardingDismissedAt DateTime?
-  emailDigest   Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  emailDigest           Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+// Transaksi berulang (fitur PRO). Tanggal jadwal bertipe DATE (tanggal kalender, tanpa zona waktu);
+// "hari ini" untuk jadwal dihitung menurut WIB. nextRunAt = tanggal kemunculan berikutnya yang belum dibuat.
+model RecurringTransaction {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category           @relation(fields: [categoryId], references: [id])
+  accountId   String
+  account     Account            @relation(fields: [accountId], references: [id])
+  type        TransactionType
+  amount      Float
+  description String
+  note        String?
+  frequency   RecurringFrequency
+  startDate   DateTime           @db.Date
+  endDate     DateTime?          @db.Date
+  nextRunAt   DateTime           @db.Date
+  lastRunAt   DateTime?
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+
+  @@index([userId])
+  @@index([active, nextRunAt])
 }
 
 enum PaymentPlan {
@@ -107,59 +141,67 @@ model PasswordResetToken {
 }
 
 model Category {
-  id           String        @id @default(cuid())
+  id           String                 @id @default(cuid())
   userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
-  type         String        @default("expense")
+  type         String                 @default("expense")
   icon         String?
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime               @default(now())
   budgets      Budget[]
   transactions Transaction[]
+  recurring    RecurringTransaction[]
 
   @@unique([userId, name])
   @@index([userId])
 }
 
 model Account {
-  id            String              @id @default(cuid())
+  id            String                 @id @default(cuid())
   userId        String
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   name          String
-  type          String              @default("bank")
-  balance       Float               @default(0)
-  isDebt        Boolean             @default(false)
+  type          String                 @default("bank")
+  balance       Float                  @default(0)
+  isDebt        Boolean                @default(false)
   debtId        String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  adjustments   Json                @default("[]")
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  adjustments   Json                   @default("[]")
   savings       SavingsInvestment[]
   transactions  Transaction[]
-  transfersFrom Transfer[]          @relation("TransferFrom")
-  transfersTo   Transfer[]          @relation("TransferTo")
+  recurring     RecurringTransaction[]
+  transfersFrom Transfer[]             @relation("TransferFrom")
+  transfersTo   Transfer[]             @relation("TransferTo")
 
   @@unique([userId, name])
   @@index([userId])
 }
 
 model Transaction {
-  id          String          @id @default(cuid())
-  txId        String          @unique
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date        DateTime
-  categoryId  String
-  description String
-  accountId   String
-  type        TransactionType
-  amount      Float
-  note        String?
-  month       String
-  week        String
-  createdAt   DateTime        @default(now())
-  account     Account         @relation(fields: [accountId], references: [id])
-  category    Category        @relation(fields: [categoryId], references: [id])
+  id            String          @id @default(cuid())
+  txId          String
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime
+  categoryId    String
+  description   String
+  accountId     String
+  type          TransactionType
+  amount        Float
+  note          String?
+  month         String
+  week          String
+  createdAt     DateTime        @default(now())
+  // Transaksi hasil jadwal berulang: pasangan (recurringId, recurringDate) unik => satu jadwal tidak bisa membuat
+  // dua transaksi untuk tanggal yang sama (idempotensi di level database).
+  recurringId   String?
+  recurringDate DateTime?       @db.Date
+  account       Account         @relation(fields: [accountId], references: [id])
+  category      Category        @relation(fields: [categoryId], references: [id])
 
+  @@unique([userId, txId]) // nomor urut dihitung per user, jadi hanya perlu unik per user (T-DEBT-4)
+  @@unique([recurringId, recurringDate])
   @@index([userId])
   @@index([date])
   @@index([month])

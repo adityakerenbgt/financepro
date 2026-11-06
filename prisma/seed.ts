@@ -114,7 +114,7 @@ async function main() {
     const accId = accMap.get(tx.acc);
     if (!catId || !accId) continue;
     await prisma.transaction.upsert({
-      where: { txId },
+      where: { userId_txId: { userId: admin.id, txId } },
       update: {},
       create: {
         txId, userId: admin.id, date: tx.date, categoryId: catId,

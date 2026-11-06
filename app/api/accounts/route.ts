@@ -104,6 +104,9 @@ export async function DELETE(req: NextRequest) {
     const txCount = await prisma.transaction.count({ where: { accountId: id, userId: user.userId } });
     if (txCount > 0) return NextResponse.json({ error: `Rekening tidak bisa dihapus karena memiliki ${txCount} transaksi` }, { status: 400 });
 
+    const recurringCount = await prisma.recurringTransaction.count({ where: { accountId: id, userId: user.userId } });
+    if (recurringCount > 0) return NextResponse.json({ error: `Rekening tidak bisa dihapus karena dipakai ${recurringCount} transaksi berulang` }, { status: 400 });
+
     await prisma.account.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
