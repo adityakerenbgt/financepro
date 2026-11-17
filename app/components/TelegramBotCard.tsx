@@ -52,8 +52,8 @@ export default function TelegramBotCard() {
         <h2 className="font-semibold text-white">{t('Bot Telegram', 'Telegram Bot')}</h2>
         {s.bot && <span className="text-xs text-slate-400">@{s.bot.username}</span>}
         {s.tokenValid && (
-          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
-            {active ? t('Aktif', 'Active') : t('Belum aktif', 'Not active')}
+          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${active ? 'bg-emerald-500/20 text-emerald-300' : s.httpsReady ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300'}`}>
+            {active ? t('Aktif', 'Active') : s.httpsReady ? t('Belum aktif', 'Not active') : t('Mode lokal', 'Local mode')}
           </span>
         )}
       </div>
@@ -68,7 +68,7 @@ export default function TelegramBotCard() {
       {s.tokenValid && (
         <>
           {!s.httpsReady && (
-            <p className="text-xs text-slate-400">{t('Alamat aplikasi ini bukan HTTPS publik, jadi webhook belum bisa didaftarkan. Untuk uji lokal pakai: ', 'This app address is not public HTTPS, so the webhook cannot be registered yet. For local testing use: ')}<code className="text-slate-200">npm run telegram:poll</code></p>
+            <p className="text-xs text-slate-400">{t('Mode lokal: bot tetap bisa dipakai lewat ', 'Local mode: the bot still works via ')}<code className="text-slate-200">npm run telegram:poll</code>{t(' (kartu ini hanya menampilkan status webhook). Webhook baru bisa diaktifkan setelah aplikasi di-deploy ke alamat HTTPS publik.', ' (this card only shows webhook status). The webhook can be activated once the app is deployed to a public HTTPS address.')}</p>
           )}
           {s.webhook && s.webhook.url && !s.webhook.matches && (
             <p className="text-xs text-amber-300">{t('Webhook mengarah ke alamat lain. Klik Aktifkan untuk memperbarui.', 'Webhook points elsewhere. Click Activate to update it.')}</p>
