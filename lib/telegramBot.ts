@@ -23,8 +23,13 @@ import { PlanLimitError } from './planLimits';
 import { rateLimit } from './rateLimit';
 import { todayWib } from './recurring';
 import { parseImportDate, parseRupiah, validateRow, type RawRow } from './importParsing';
+import prisma from './db';
+import { EntryParseError, normalizeChatEntry, parseChatHeuristic, type ChatEntry, type EntryContext } from './chatEntry';
 import {
-  activePending, clearPending, consumeLinkCode, getUserByChat, setPending, unlinkByChat, type LinkedUser,
+  MAX_IMAGE_BYTES, getReceiptProvider, normalizeReceipt, readEntryWithLLM, readReceiptWithActiveProvider, sniffImageMime,
+} from './receipt';
+import {
+  activePending, claimPending, clearPending, consumeLinkCode, getUserByChat, setPending, unlinkByChat, type LinkedUser,
 } from './telegramLink';
 
 export type BotCtx = Context & { fp?: LinkedUser };
@@ -33,6 +38,7 @@ export interface BotOptions {
   token?: string;
   botInfo?: UserFromGetMe; // bila diberikan, bot tidak memanggil getMe (dipakai pengujian)
   transformer?: Transformer; // mencegat panggilan API Telegram (dipakai pengujian)
+  apiRoot?: string; // alamat API Telegram (hanya pengujian; unduhan foto memakai alamat ini)
 }
 
 // Perintah yang boleh dipakai paket FREE (sesuai halaman harga: tambah & lihat transaksi). Sisanya khusus PRO.
@@ -63,7 +69,8 @@ export function createBot(opts: BotOptions = {}): Bot<BotCtx> {
   const token = opts.token ?? process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not set');
 
-  const bot = new Bot<BotCtx>(token, opts.botInfo ? { botInfo: opts.botInfo } : undefined);
+  const apiRoot = (opts.apiRoot ?? 'https://api.telegram.org').replace(/\/+$/, '');
+  const bot = new Bot<BotCtx>(token, { ...(opts.botInfo ? { botInfo: opts.botInfo } : {}), ...(opts.apiRoot ? { client: { apiRoot } } : {}) });
   if (opts.transformer) bot.api.config.use(opts.transformer);
 
   // ---------- Gerbang: hanya chat pribadi, tertaut, dan sesuai paket ----------
@@ -271,7 +278,11 @@ export function createBot(opts: BotOptions = {}): Bot<BotCtx> {
     const text = ctx.message.text.trim();
     if (!user || text.startsWith('/')) return;
     const pending = activePending(user);
-    if (!pending) return;
+    if (!pending || pending.startsWith('ai:')) {
+      // Tanpa perintah menunggu: anggap kalimat bebas ("makan siang 25rb pakai BCA"); draf lama yang belum dikonfirmasi diganti.
+      await handleFreeText(ctx, text);
+      return;
+    }
     await clearPending(user.id);
 
     switch (pending) {
@@ -283,10 +294,142 @@ export function createBot(opts: BotOptions = {}): Bot<BotCtx> {
     }
   });
 
+  // ---------- Foto nota ----------
+  bot.on('message:photo', async (ctx) => {
+    const user = ctx.fp;
+    if (!user) return;
+    if (getEffectivePlan(user) !== 'PRO') { await ctx.reply(UPGRADE(), HTML); return; }
+    if (getReceiptProvider() === 'ondevice') {
+      await ctx.reply('📷 Membaca foto nota di bot butuh pembaca AI yang belum aktif. Gunakan menu <b>Scan Nota</b> di web: ' + baseUrl() + '/dashboard/scan', HTML);
+      return;
+    }
+    const rl = await rateLimit('tg-ai', user.id, 30, 3600);
+    if (!rl.success) { await ctx.reply('⏳ Terlalu banyak permintaan. Coba lagi nanti.'); return; }
+
+    try {
+      const photos = ctx.message.photo;
+      const pick = [...photos].reverse().find((p) => (p.file_size ?? 0) <= MAX_IMAGE_BYTES) ?? photos[0];
+      if ((pick.file_size ?? 0) > MAX_IMAGE_BYTES) { await ctx.reply('❌ Foto terlalu besar (maksimal 4 MB).'); return; }
+      const file = await ctx.api.getFile(pick.file_id);
+      if (!file.file_path) throw new Error('file_path kosong');
+      const res = await fetch(`${apiRoot}/file/bot${token}/${file.file_path}`, { signal: AbortSignal.timeout(15_000) });
+      if (!res.ok) throw new Error(`unduh foto HTTP ${res.status}`);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.length > MAX_IMAGE_BYTES) { await ctx.reply('❌ Foto terlalu besar (maksimal 4 MB).'); return; }
+      const mime = sniffImageMime(bytes);
+      if (!mime) { await ctx.reply('❌ Format foto harus JPEG, PNG, atau WebP.'); return; }
+
+      await ctx.reply('🔎 Membaca nota...');
+      const lists = await entryLists(user.id);
+      const raw = await readReceiptWithActiveProvider(bytes, mime, lists.categories);
+      const { draft } = normalizeReceipt(raw, { categories: lists.categories });
+      const { entry } = normalizeChatEntry(
+        { type: 'Pengeluaran', amount: draft.amount, description: draft.merchant || 'Belanja', category: draft.category, account: '', date: draft.date },
+        lists,
+      );
+      await proposeEntry(ctx, entry);
+    } catch (err) {
+      console.error('[telegram] foto nota:', err instanceof Error ? err.message : err);
+      await ctx.reply('❌ Nota tidak terbaca. Coba foto lebih jelas dan lurus, atau ketik manual: <code>makan siang 25rb</code>', HTML);
+    }
+  });
+
+  // ---------- Tombol konfirmasi ----------
+  bot.callbackQuery('ai:cancel', async (ctx) => {
+    const user = ctx.fp;
+    if (!user) return;
+    const pending = activePending(user);
+    if (pending?.startsWith('ai:')) await claimPending(user.id, user.telegramPending!);
+    await ctx.answerCallbackQuery({ text: 'Dibatalkan' });
+    await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }).catch(() => {});
+    await ctx.reply('❌ Dibatalkan.');
+  });
+
+  bot.callbackQuery('ai:save', async (ctx) => {
+    const user = ctx.fp;
+    if (!user) return;
+    if (getEffectivePlan(user) !== 'PRO') { await ctx.answerCallbackQuery(); await ctx.reply(UPGRADE(), HTML); return; }
+    const pending = activePending(user);
+    // Klaim atomik: klik ganda / tombol lama tidak bisa menyimpan dua kali.
+    if (!pending?.startsWith('ai:') || !(await claimPending(user.id, user.telegramPending!))) {
+      await ctx.answerCallbackQuery({ text: 'Draf sudah tidak berlaku' });
+      await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }).catch(() => {});
+      return;
+    }
+    await ctx.answerCallbackQuery();
+    await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }).catch(() => {});
+    await safe(ctx, 'transaksi', async () => {
+      // Validasi ulang terhadap daftar kategori/rekening TERKINI (draf bisa kedaluwarsa atau diubah di web).
+      const lists = await entryLists(user.id);
+      let entry: ChatEntry;
+      try { entry = normalizeChatEntry(JSON.parse(pending.slice(3)), lists).entry; } catch { await ctx.reply('❌ Draf tidak valid. Kirim ulang pesannya.'); return; }
+      const tx = await createTransaction(user.id, {
+        date: entry.date, category: entry.category, description: entry.description, account: entry.account, type: entry.type, amount: entry.amount,
+      });
+      await ctx.reply(`✅ <b>Tersimpan!</b>\n🆔 ${h(tx.txId)}\n${entry.type === 'Pemasukan' ? '💰' : '💸'} ${formatCurrency(entry.amount)} — ${h(entry.description)}`, HTML);
+    });
+  });
+
   return bot;
 }
 
 // ---------- Pembantu ----------
+
+// Daftar kategori & rekening milik user: satu-satunya nilai yang boleh dipakai oleh usulan otomatis.
+async function entryLists(userId: string): Promise<EntryContext> {
+  const [cats, accs] = await Promise.all([
+    prisma.category.findMany({ where: { userId }, select: { name: true }, orderBy: { name: 'asc' } }),
+    prisma.account.findMany({ where: { userId }, select: { name: true }, orderBy: { createdAt: 'asc' } }),
+  ]);
+  const categories = cats.map((c) => c.name);
+  if (!categories.includes('Lainnya')) categories.push('Lainnya');
+  const accounts = accs.map((a) => a.name);
+  return { categories, accounts, defaultAccount: accounts[0] ?? 'Tunai', today: todayWib() };
+}
+
+// Menyimpan draf di pending (10 menit) dan meminta konfirmasi dengan tombol. Tidak ada yang disimpan sebelum user menekan "Simpan".
+async function proposeEntry(ctx: BotCtx, entry: ChatEntry) {
+  await setPending(ctx.fp!.id, 'ai:' + JSON.stringify(entry));
+  const [y, m, d] = entry.date.split('-');
+  await ctx.reply(
+    `📝 <b>Simpan transaksi ini?</b>\n\n${entry.type === 'Pemasukan' ? '💰 Pemasukan' : '💸 Pengeluaran'}: <b>${formatCurrency(entry.amount)}</b>\n` +
+    `📂 ${h(entry.category)}\n📄 ${h(entry.description)}\n🏦 ${h(entry.account)}\n📅 ${d}/${m}/${y}\n\n<i>Berlaku 10 menit.</i>`,
+    { ...HTML, reply_markup: { inline_keyboard: [[{ text: '✅ Simpan', callback_data: 'ai:save' }, { text: '❌ Batal', callback_data: 'ai:cancel' }]] } },
+  );
+}
+
+async function handleFreeText(ctx: BotCtx, text: string) {
+  const user = ctx.fp!;
+  if (getEffectivePlan(user) !== 'PRO') {
+    await ctx.reply('💡 Mencatat dari kalimat bebas khusus <b>PRO</b>. Gunakan /add atau upgrade: ' + baseUrl() + '/dashboard/upgrade', HTML);
+    return;
+  }
+  const rl = await rateLimit('tg-ai', user.id, 30, 3600);
+  if (!rl.success) { await ctx.reply('⏳ Terlalu banyak permintaan. Coba lagi nanti.'); return; }
+  if (text.length > 500) { await ctx.reply('❌ Pesan terlalu panjang (maksimal 500 karakter).'); return; }
+
+  try {
+    const lists = await entryLists(user.id);
+    let entry: ChatEntry | null = null;
+    // 1) AI (bila aktif); 2) parser aturan sebagai cadangan gratis.
+    if (getReceiptProvider() !== 'ondevice') {
+      try { entry = normalizeChatEntry(await readEntryWithLLM(text, { ...lists, today: lists.today! }), lists).entry; }
+      catch (e) { if (!(e instanceof EntryParseError)) console.error('[telegram] AI kalimat:', e instanceof Error ? e.message : e); }
+    }
+    if (!entry) {
+      const raw = parseChatHeuristic(text, lists);
+      if (raw) { try { entry = normalizeChatEntry(raw, lists).entry; } catch { /* jatuh ke bantuan di bawah */ } }
+    }
+    if (!entry) {
+      await ctx.reply('🤔 Aku belum menemukan nominalnya. Contoh: <code>makan siang 25rb pakai BCA</code> atau <code>gaji masuk 5jt</code>. Atau kirim foto nota.', HTML);
+      return;
+    }
+    await proposeEntry(ctx, entry);
+  } catch (err) {
+    console.error('[telegram] kalimat bebas:', err instanceof Error ? err.message : err);
+    await ctx.reply('❌ Gagal memproses pesan. Coba lagi.');
+  }
+}
 
 function helpText(isPro: boolean): string {
   const lock = isPro ? '' : ' 🔒';
@@ -296,6 +439,7 @@ function helpText(isPro: boolean): string {
     `<b>📈 Khusus PRO${isPro ? '' : ' (upgrade untuk membuka)'}:</b>\n` +
     `/nabung /investasi${lock} - Catat tabungan/investasi\n/hutang /bayar${lock} - Utang\n/aset /budget /goals${lock}\n` +
     `/harian /mingguan /bulanan${lock} - Laporan\n\n` +
+    `<b>🤖 Catat otomatis${isPro ? '' : ' (PRO)'}:</b>\nKetik saja: <code>makan siang 25rb pakai BCA</code>, atau kirim foto nota. Aku tampilkan dulu, lalu kamu konfirmasi.\n\n` +
     `<b>⚙️ Akun:</b>\n/link KODE - Hubungkan akun\n/unlink - Putuskan akun\n/dashboard - Buka web dashboard`
   );
 }

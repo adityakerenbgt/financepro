@@ -13,6 +13,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed-demo": "tsx prisma/seed-demo.ts",
     "test:api": "tsx --env-file=.env --env-file=.env.local --test --test-concurrency=1 tests/api/*.test.ts",
+    "test:bot": "tsx --env-file=.env --env-file=.env.local --test --test-concurrency=1 tests/bot/*.test.ts",
     "test:unit": "tsx --test lib/*.test.ts",
     "storage:setup": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/setup-storage.ts",
     "telegram:webhook": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/set-telegram-webhook.ts",

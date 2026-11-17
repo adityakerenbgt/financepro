@@ -95,6 +95,12 @@ export async function clearPending(userId: string): Promise<void> {
   await prisma.user.update({ where: { id: userId }, data: { telegramPending: null, telegramPendingAt: null } });
 }
 
+// Mengklaim status pending secara atomik: hanya satu pemanggil yang berhasil (mencegah klik ganda "Simpan" membuat transaksi ganda).
+export async function claimPending(userId: string, expected: string): Promise<boolean> {
+  const res = await prisma.user.updateMany({ where: { id: userId, telegramPending: expected }, data: { telegramPending: null, telegramPendingAt: null } });
+  return res.count === 1;
+}
+
 // Perintah menunggu masukan berikutnya, bila masih dalam 10 menit.
 export function activePending(u: Pick<LinkedUser, 'telegramPending' | 'telegramPendingAt'>, now: Date = new Date()): string | null {
   if (!u.telegramPending || !u.telegramPendingAt) return null;
