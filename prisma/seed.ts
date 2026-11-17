@@ -53,6 +53,14 @@ async function main() {
   }
   console.log(`✓ ${categoryDefs.length} categories created for admin`);
 
+  // Data contoh (rekening, transaksi, utang, aset, budget, goals) HANYA bila diminta eksplisit: SEED_DEMO_DATA=1.
+  // Produksi cukup admin + profil + kategori; user membuat datanya sendiri.
+  if (process.env.SEED_DEMO_DATA !== '1') {
+    console.log('\n✅ Database seeded (admin + kategori, tanpa data contoh).');
+    console.log(`   Admin: ${ADMIN_USERNAME}`);
+    return;
+  }
+
   // ---- Accounts ----
   const accountDefs = [
     { name: 'BCA', type: 'bank', balance: 5_000_000 },
