@@ -10,9 +10,11 @@ import { useAuth } from '../../auth-context';
 import { useSetupData } from '../../hooks';
 import { RpInput } from '../../components/RpInput';
 import ProGate from '../../components/ProGate';
+import { readReceiptOnDevice } from '@/lib/receiptOcr';
 
 interface Draft { date: string; amount: number; merchant: string; category: string; items: { name: string; amount: number }[] }
 type Step = 'pick' | 'reading' | 'review' | 'saving' | 'done';
+type Provider = 'ondevice' | 'gemini';
 
 const MAX_SIDE = 1600;
 
@@ -39,6 +41,9 @@ export default function ScanReceiptPage() {
   const { categories, accounts, loading } = useSetupData();
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const [provider, setProvider] = useState<Provider>('ondevice');
+  const [ocrText, setOcrText] = useState('');
+  const [ocrProgress, setOcrProgress] = useState<{ percent: number; stage: 'download' | 'read' } | null>(null);
   const [step, setStep] = useState<Step>('pick');
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -51,6 +56,11 @@ export default function ScanReceiptPage() {
   const [account, setAccount] = useState('');
   const [includeItems, setIncludeItems] = useState(false);
 
+  // Pembaca yang aktif ditentukan server (env RECEIPT_PROVIDER): "ondevice" (bawaan) atau "gemini".
+  useEffect(() => {
+    if (!isPro) return;
+    fetch('/api/receipts/scan').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.provider === 'gemini') setProvider('gemini'); }).catch(() => {});
+  }, [isPro]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   // Akun baru belum punya rekening: bawaannya "Tunai" (dibuat otomatis saat transaksi pertama disimpan).
   useEffect(() => { if (!account && !loading) setAccount(accounts[0]?.name ?? 'Tunai'); }, [accounts, account, loading]);
@@ -62,6 +72,7 @@ export default function ScanReceiptPage() {
 
   const reset = () => {
     setStep('pick'); setError(''); setWarnings([]); setItems([]); setIncludeItems(false);
+    setOcrText(''); setOcrProgress(null);
     setPreviewUrl(''); setDate(''); setAmount(''); setDescription(''); setCategory('');
     if (fileInput.current) fileInput.current.value = '';
   };
@@ -72,14 +83,22 @@ export default function ScanReceiptPage() {
     setPreviewUrl(URL.createObjectURL(file));
     try {
       const blob = await shrink(file);
-      const fd = new FormData();
-      fd.append('file', blob, 'nota.jpg');
-      const res = await fetch('/api/receipts/scan', { method: 'POST', body: fd });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t('Gagal membaca nota', 'Failed to read receipt'));
-      const d: Draft = data.draft;
-      setDate(d.date); setAmount(String(d.amount)); setDescription(d.merchant); setCategory(d.category); setItems(d.items);
-      setWarnings(data.warnings ?? []);
+      let d: Draft;
+      let warns: string[];
+      if (provider === 'gemini') {
+        const fd = new FormData();
+        fd.append('file', blob, 'nota.jpg');
+        const res = await fetch('/api/receipts/scan', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || t('Gagal membaca nota', 'Failed to read receipt'));
+        d = data.draft; warns = data.warnings ?? [];
+      } else {
+        const cats = expenseCats.includes('Lainnya') ? expenseCats : [...expenseCats, 'Lainnya'];
+        const r = await readReceiptOnDevice(blob, cats, (percent, stage) => setOcrProgress({ percent, stage }));
+        d = r.draft; warns = r.warnings; setOcrText(r.text);
+      }
+      setDate(d.date); setAmount(d.amount ? String(d.amount) : ''); setDescription(d.merchant); setCategory(d.category); setItems(d.items);
+      setWarnings(warns);
       setStep('review');
     } catch (e: any) {
       setError(tError(e.message));
@@ -115,6 +134,7 @@ export default function ScanReceiptPage() {
     date_invalid: ['Tanggal pada nota tampak tidak wajar; diisi hari ini. Periksa kembali.', 'The receipt date looks off; set to today. Please check.'],
     category_unknown: ['Kategori tidak yakin; pilih yang sesuai.', 'Category unsure; please choose one.'],
     amount_rounded: ['Nominal dibulatkan ke Rupiah.', 'Amount rounded to whole Rupiah.'],
+    amount_missing: ['Total tidak terbaca; isi manual.', 'Total not found; please enter it manually.'],
   };
 
   return (
@@ -126,7 +146,9 @@ export default function ScanReceiptPage() {
 
       <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 border border-slate-700 rounded-lg p-3">
         <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-        <span>{t('Foto dikirim ke Google Gemini hanya untuk dibaca, lalu dibuang: FinancePro tidak menyimpan fotonya. Pastikan nota tidak memuat data sensitif lain.', 'The photo is sent to Google Gemini only to be read, then discarded: FinancePro does not store it. Make sure the receipt has no other sensitive data.')}</span>
+        <span>{provider === 'gemini'
+          ? t('Foto dikirim ke Google Gemini hanya untuk dibaca, lalu dibuang: FinancePro tidak menyimpan fotonya. Pastikan nota tidak memuat data sensitif lain.', 'The photo is sent to Google Gemini only to be read, then discarded: FinancePro does not store it. Make sure the receipt has no other sensitive data.')
+          : t('Nota dibaca langsung di perangkatmu: foto tidak dikirim ke server mana pun. Hasil bacaan bisa kurang akurat, jadi periksa sebelum menyimpan.', 'The receipt is read on your device: the photo is not sent to any server. Results may be less accurate, so please check before saving.')}</span>
       </div>
 
       {error && <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-3">{error}</div>}
@@ -136,7 +158,12 @@ export default function ScanReceiptPage() {
           {step === 'reading' ? (
             <>
               {previewUrl && <img src={previewUrl} alt="" className="mx-auto max-h-48 rounded-lg opacity-70" />}
-              <div className="flex items-center justify-center gap-2 text-slate-300"><RefreshCw className="w-4 h-4 animate-spin" />{t('Membaca nota...', 'Reading receipt...')}</div>
+              <div className="flex items-center justify-center gap-2 text-slate-300">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                {provider === 'ondevice' && ocrProgress
+                  ? `${ocrProgress.stage === 'download' ? t('Menyiapkan pembaca (sekali di awal)', 'Preparing reader (first time only)') : t('Membaca nota', 'Reading receipt')}... ${ocrProgress.percent}%`
+                  : t('Membaca nota...', 'Reading receipt...')}
+              </div>
             </>
           ) : (
             <>
@@ -188,6 +215,12 @@ export default function ScanReceiptPage() {
               )}
             </div>
           </div>
+          {ocrText && (
+            <details className="text-xs text-slate-500">
+              <summary className="cursor-pointer">{t('Teks yang terbaca', 'Recognised text')}</summary>
+              <pre className="mt-2 whitespace-pre-wrap max-h-40 overflow-auto bg-slate-900/60 rounded p-2">{ocrText}</pre>
+            </details>
+          )}
           {items.length > 0 && (
             <div className="text-xs text-slate-400">
               <label className="flex items-center gap-2 cursor-pointer">

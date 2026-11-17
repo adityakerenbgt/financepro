@@ -12,11 +12,13 @@ const nextConfig = {
     // Sumber lain dibatasi ketat. Supabase = tautan bukti pembayaran bertanda tangan; Sentry = pelaporan error (bila aktif).
     const csp = [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ''}`,
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${dev ? " 'unsafe-eval'" : ''}`, // wasm: OCR Tesseract di perangkat
+      "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https://*.supabase.co",
-      `connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io${dev ? ' ws: http://localhost:*' : ''}`,
+      // data: = inti WASM Tesseract (OCR di perangkat) dimuat dari URL data:; fetch ke data: tidak bisa mengirim data keluar.
+      `connect-src 'self' data: https://*.supabase.co https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io${dev ? ' ws: http://localhost:*' : ''}`,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

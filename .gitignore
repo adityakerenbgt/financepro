@@ -38,3 +38,4 @@ Thumbs.db
 
 # Cache build TypeScript (dibuat ulang otomatis)
 *.tsbuildinfo
+public/tesseract/

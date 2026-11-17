@@ -3,11 +3,18 @@ import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { rateLimit, tooManyRequests } from '@/lib/rateLimit';
 import {
-  GeminiNotConfiguredError, MAX_IMAGE_BYTES, ReceiptReadError, normalizeReceipt, readReceiptWithGemini, sniffImageMime,
+  GeminiNotConfiguredError, MAX_IMAGE_BYTES, getReceiptProvider, ReceiptReadError, normalizeReceipt, readReceiptWithGemini, sniffImageMime,
 } from '@/lib/receipt';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
+
+// GET -> { provider } agar halaman tahu apakah foto dibaca di server (Gemini) atau di perangkat (OCR).
+export async function GET(req: NextRequest) {
+  const { error } = await requirePro(req);
+  if (error) return error;
+  return NextResponse.json({ provider: getReceiptProvider() });
+}
 
 // POST multipart/form-data (field "file": JPEG/PNG/WebP, maks. 4 MB) -> { draft, warnings }.
 // Khusus PRO. TIDAK menyimpan apa pun (gambar maupun hasilnya); user mengonfirmasi lalu menyimpan lewat /api/transactions.
@@ -40,6 +47,9 @@ export async function POST(req: NextRequest) {
     const categories = cats.map((c) => c.name);
     if (!categories.includes('Lainnya')) categories.push('Lainnya');
 
+    if (getReceiptProvider() !== 'gemini') {
+      return NextResponse.json({ error: 'Pembaca nota di server tidak aktif; foto dibaca di perangkat.', code: 'PROVIDER_ONDEVICE' }, { status: 409 });
+    }
     const raw = await readReceiptWithGemini(bytes, mime, categories);
     const result = normalizeReceipt(raw, { categories });
     return NextResponse.json(result);

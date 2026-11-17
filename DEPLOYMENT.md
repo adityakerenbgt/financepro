@@ -23,7 +23,7 @@ Target: **Vercel** (aplikasi + cron) + **Supabase** (PostgreSQL + Storage) + dom
 | Resend | Email (reset password, welcome, pengingat, digest, notifikasi admin) | `RESEND_API_KEY`, `EMAIL_FROM` — verifikasi domain (SPF + DKIM) dulu |
 | Upstash Redis | Rate limit yang bekerja di serverless | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
 | Sentry (opsional) | Pelacakan error tanpa data pribadi | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`; untuk source map: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` |
-| Google AI Studio (opsional) | Scan Nota (PRO) | `GEMINI_API_KEY` (opsional `GEMINI_MODEL`); batasi kuota/biaya di Google Cloud |
+| Google AI Studio (opsional) | Scan Nota lebih akurat (PRO). Tanpa ini Scan Nota tetap jalan (OCR di perangkat) | `RECEIPT_PROVIDER=gemini` + `GEMINI_API_KEY` (opsional `GEMINI_MODEL`); batasi kuota/biaya di Google Cloud |
 | BotFather (opsional) | Bot Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` |
 
 ## 3. Vercel 🔑

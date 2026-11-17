@@ -1,7 +1,7 @@
 // Uji /api/receipts/scan (T-OWN-8).
 //  - Bagian 1 (selalu jalan): otorisasi & validasi unggahan; tidak pernah sampai memanggil Gemini.
 //  - Bagian 2 (hanya bila RECEIPT_FAKE=1): memakai server Gemini TIRUAN. Jalankan server dengan
-//      GEMINI_BASE_URL=http://localhost:9998 GEMINI_API_KEY=fake npm run dev
+//      RECEIPT_PROVIDER=gemini GEMINI_BASE_URL=http://localhost:9998 GEMINI_API_KEY=fake npm run dev
 //    lalu:  RECEIPT_FAKE=1 npm run test:api
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,6 +43,10 @@ test('Scan nota: tanpa login 401, FREE 403, unggahan tidak valid ditolak', async
   assert.equal((await f.json()).code, 'PRO_REQUIRED');
 
   const pro = await mk('pro', 'PRO');
+  const prov = await fetch(BASE + '/api/receipts/scan', { headers: { cookie: pro.cookie, 'x-forwarded-for': pro.ip } });
+  assert.equal(prov.status, 200);
+  assert.ok(['ondevice', 'gemini'].includes((await prov.json()).provider));
+  assert.equal((await fetch(BASE + '/api/receipts/scan', { headers: { cookie: free.cookie, 'x-forwarded-for': free.ip } })).status, 403);
   assert.equal((await upload(pro, null)).status, 400, 'tanpa file');
   assert.equal((await upload(pro, new TextEncoder().encode('<svg onload=alert(1)>'), 'x.jpg', 'image/jpeg')).status, 400, 'SVG menyamar jadi jpg');
   assert.equal((await upload(pro, new TextEncoder().encode('%PDF-1.7 ...'), 'x.pdf', 'application/pdf')).status, 400, 'PDF');
