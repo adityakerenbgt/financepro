@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate } from '@/lib/utils';
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(transfers);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('transfer', error);
   }
 }
 
@@ -43,26 +44,26 @@ export async function POST(req: NextRequest) {
     if (!toAcc) return NextResponse.json({ error: `Rekening "${toAccount}" tidak ditemukan` }, { status: 404 });
 
     const parsedDate = parseDate(date);
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return NextResponse.json({ error: 'Nominal harus berupa angka lebih dari 0' }, { status: 400 });
 
     // Generate ID
     const count = await prisma.transfer.count({ where: { userId: user.userId, date: { gte: new Date(parsedDate.setHours(0,0,0,0)) } } });
     const txId = generateTrfId(parseDate(date), count + 1);
 
-    const transfer = await prisma.transfer.create({
-      data: { userId: user.userId, txId, date: parseDate(date), fromAccountId: fromAcc.id, toAccountId: toAcc.id, amount: parsedAmount, notes: notes || null },
-      include: { fromAccount: true, toAccount: true },
-    });
-
-    // Update balances
-    await Promise.all([
+    // Atomik: transfer + kedua saldo dalam satu transaksi database (T-DEBT-5).
+    const [transfer] = await prisma.$transaction([
+      prisma.transfer.create({
+        data: { userId: user.userId, txId, date: parseDate(date), fromAccountId: fromAcc.id, toAccountId: toAcc.id, amount: parsedAmount, notes: notes || null },
+        include: { fromAccount: true, toAccount: true },
+      }),
       prisma.account.update({ where: { id: fromAcc.id }, data: { balance: { decrement: parsedAmount } } }),
       prisma.account.update({ where: { id: toAcc.id }, data: { balance: { increment: parsedAmount } } }),
     ]);
 
     return NextResponse.json(transfer, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('transfer', error);
   }
 }
 
@@ -76,15 +77,13 @@ export async function DELETE(req: NextRequest) {
     const transfer = await prisma.transfer.findFirst({ where: { id, userId: user.userId } });
     if (!transfer) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // Reverse balances
-    await Promise.all([
+    await prisma.$transaction([
       prisma.account.update({ where: { id: transfer.fromAccountId }, data: { balance: { increment: transfer.amount } } }),
       prisma.account.update({ where: { id: transfer.toAccountId }, data: { balance: { decrement: transfer.amount } } }),
+      prisma.transfer.delete({ where: { id } }),
     ]);
-
-    await prisma.transfer.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('transfer', error);
   }
 }

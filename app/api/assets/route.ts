@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getAssetSummaries } from '@/lib/services';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     const assets = await getAssetSummaries(user.userId);
     return NextResponse.json(assets);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('assets', error);
   }
 }
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(asset, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('assets', error);
   }
 }
 
@@ -51,7 +52,7 @@ export async function PATCH(req: NextRequest) {
     const asset = await prisma.asset.update({ where: { id }, data: { currentValue: parseFloat(body.currentValue || '0'), lastUpdated: new Date() } });
     return NextResponse.json(asset);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('assets', error);
   }
 }
 
@@ -67,6 +68,6 @@ export async function DELETE(req: NextRequest) {
     await prisma.asset.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('assets', error);
   }
 }

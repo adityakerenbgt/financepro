@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getBudgetSummaries } from '@/lib/services';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
     const summaries = await getBudgetSummaries(user.userId, month);
     return NextResponse.json(summaries);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('budget', error);
   }
 }
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(budget, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('budget', error);
   }
 }
 
@@ -50,7 +51,7 @@ export async function PATCH(req: NextRequest) {
     const budget = await prisma.budget.update({ where: { id }, data: { amount: parseFloat(amount) }, include: { category: true } });
     return NextResponse.json(budget);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('budget', error);
   }
 }
 
@@ -66,6 +67,6 @@ export async function DELETE(req: NextRequest) {
     await prisma.budget.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('budget', error);
   }
 }

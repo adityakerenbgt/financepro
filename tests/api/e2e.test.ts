@@ -92,8 +92,8 @@ test('3. Tanpa login: API dilindungi (401)', async () => {
   for (const p of ['/api/transactions', '/api/accounts', '/api/dashboard-data', '/api/export?format=csv', '/api/payments', '/api/telegram/link']) {
     assert.equal((await c.get(p)).status, 401, p);
   }
-  assert.ok([401, 403].includes((await c.get('/api/admin/users')).status), 'admin API tertutup tanpa login');
-  assert.ok([401, 403].includes((await c.get('/api/admin/payments')).status));
+  assert.equal((await c.get('/api/admin/users')).status, 401);
+  assert.equal((await c.get('/api/admin/payments')).status, 401);
 });
 
 test('4. Transaksi: tambah → daftar → dashboard → ubah → hapus', async () => {
@@ -248,4 +248,50 @@ test('13. Ekspor: format salah 400; CSV memuat data sendiri', async () => {
   assert.equal(csv.status, 200);
   assert.ok(csv.text.includes("'=2+2"), 'formula injection dinetralkan');
   assert.match(csv.headers.get('content-disposition') ?? '', /attachment/);
+});
+
+const balanceOf = async (c: Client, accName: string) => {
+  const r = (await c.get('/api/accounts')).json;
+  return (Array.isArray(r) ? r : r.accounts).find((a: any) => a.name === accName)?.balance;
+};
+
+test('14. Integritas saldo: ubah transaksi yang ditolak batas paket tidak merusak saldo (T-DEBT-5)', async () => {
+  await mkUser('bal', { plan: 'FREE' });
+  const c = new Client(); await c.login(name('bal'));
+  const tx = (await c.post('/api/transactions', { date: today(), category: 'Makan', description: 'a', account: 'Tunai', type: 'Pengeluaran', amount: 10000 })).json;
+  assert.equal(await balanceOf(c, 'Tunai'), -10000);
+  // pindah ke rekening ke-2 ditolak untuk FREE
+  const bad = await c.patch('/api/transactions', { id: tx.id, date: today(), category: 'Makan', description: 'a', account: 'Rekening2', type: 'Pengeluaran', amount: 10000 });
+  assert.ok([402, 403].includes(bad.status), `harus ditolak, dapat ${bad.status}`);
+  assert.equal(await balanceOf(c, 'Tunai'), -10000, 'saldo TIDAK boleh berubah setelah ditolak');
+  assert.equal((await c.get('/api/transactions')).json.transactions[0].account.name, 'Tunai');
+  // input tak valid -> 400 dan saldo tetap
+  for (const amount of ['abc', -5, 0]) {
+    assert.equal((await c.patch('/api/transactions', { id: tx.id, date: today(), category: 'Makan', description: 'a', account: 'Tunai', type: 'Pengeluaran', amount })).status, 400, String(amount));
+  }
+  assert.equal(await balanceOf(c, 'Tunai'), -10000);
+});
+
+test('15. Transfer & bayar utang: atomik, validasi nominal, dan pembatalan mengembalikan saldo', async () => {
+  await mkUser('trf', { plan: 'PRO' });
+  const c = new Client(); await c.login(name('trf'));
+  await c.post('/api/transactions', { date: today(), category: 'Gaji', description: 'gaji', account: 'A', type: 'Pemasukan', amount: 100000 });
+  await c.post('/api/transactions', { date: today(), category: 'Gaji', description: 'gaji', account: 'B', type: 'Pemasukan', amount: 5000 });
+  for (const amount of ['abc', -1, 0]) {
+    assert.equal((await c.post('/api/transfer', { date: today(), fromAccount: 'A', toAccount: 'B', amount })).status, 400, `transfer ${amount}`);
+  }
+  assert.equal((await c.post('/api/transfer', { date: today(), fromAccount: 'A', toAccount: 'A', amount: 10 })).status, 400);
+  const t = await c.post('/api/transfer', { date: today(), fromAccount: 'A', toAccount: 'B', amount: 30000 });
+  assert.equal(t.status, 201, t.text);
+  assert.equal(await balanceOf(c, 'A'), 70000);
+  assert.equal(await balanceOf(c, 'B'), 35000);
+  assert.equal((await c.del('/api/transfer', { id: t.json.id })).status, 200);
+  assert.equal(await balanceOf(c, 'A'), 100000);
+  assert.equal(await balanceOf(c, 'B'), 5000);
+
+  const debt = (await c.post('/api/debts', { debtType: 'Fixed', debtName: 'Utang Uji', limitOrPrincipal: 500000 })).json;
+  const acc = (await c.get('/api/accounts')).json; const accA = (Array.isArray(acc) ? acc : acc.accounts).find((a: any) => a.name === 'A');
+  assert.equal((await c.post('/api/debt-payments', { debtId: debt.id, accountId: accA.id, date: today(), amount: 'abc' })).status, 400);
+  assert.equal((await c.post('/api/debt-payments', { debtId: debt.id, accountId: accA.id, date: today(), amount: 40000 })).status, 201);
+  assert.equal(await balanceOf(c, 'A'), 60000);
 });

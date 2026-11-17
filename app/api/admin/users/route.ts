@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { serverError } from '@/lib/apiError';
+import { requireAdminUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { isTrial } from '@/lib/plan';
@@ -9,28 +10,22 @@ const USER_SELECT = {
   role: true, plan: true, planExpiresAt: true, trialEndsAt: true, createdAt: true,
 } as const;
 
-async function requireAdmin(req: NextRequest) {
-  const user = await getCurrentUser(req);
-  if (!user) return null;
-  if (user.role !== 'ADMIN') return null;
-  return user;
-}
 
 export async function GET(req: NextRequest) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { user: admin, error: authError } = await requireAdminUser(req);
+    if (authError) return authError;
     const users = await prisma.user.findMany({ select: USER_SELECT, orderBy: { createdAt: 'asc' } });
     return NextResponse.json(users.map(({ trialEndsAt, ...u }) => ({ ...u, isTrial: isTrial({ ...u, trialEndsAt }) })));
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('admin/users', error);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { user: admin, error: authError } = await requireAdminUser(req);
+    if (authError) return authError;
 
     const { username, displayName, password, role } = await req.json();
     if (!username || !password) {
@@ -47,14 +42,14 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(user, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('admin/users', error);
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { user: admin, error: authError } = await requireAdminUser(req);
+    if (authError) return authError;
 
     const body = await req.json();
     const { id, displayName, password, role, plan, planExpiresAt } = body;
@@ -70,14 +65,14 @@ export async function PATCH(req: NextRequest) {
     const user = await prisma.user.update({ where: { id }, data: updateData, select: USER_SELECT });
     return NextResponse.json(user);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('admin/users', error);
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
-    const admin = await requireAdmin(req);
-    if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { user: admin, error: authError } = await requireAdminUser(req);
+    if (authError) return authError;
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
@@ -86,6 +81,6 @@ export async function DELETE(req: NextRequest) {
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('admin/users', error);
   }
 }

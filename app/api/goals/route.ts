@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getGoalSummaries } from '@/lib/services';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     const goals = await getGoalSummaries(user.userId);
     return NextResponse.json(goals);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('goals', error);
   }
 }
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(goal, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('goals', error);
   }
 }
 
@@ -49,7 +50,7 @@ export async function PATCH(req: NextRequest) {
     });
     return NextResponse.json(goal);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('goals', error);
   }
 }
 
@@ -65,6 +66,6 @@ export async function DELETE(req: NextRequest) {
     await prisma.goal.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('goals', error);
   }
 }

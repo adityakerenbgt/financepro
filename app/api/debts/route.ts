@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getDebtSummaries } from '@/lib/services';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
     const debts = await getDebtSummaries(user.userId);
     return NextResponse.json(debts);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('debts', error);
   }
 }
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(debt, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('debts', error);
   }
 }
 
@@ -66,7 +67,7 @@ export async function PATCH(req: NextRequest) {
     });
     return NextResponse.json(debt);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('debts', error);
   }
 }
 
@@ -82,6 +83,6 @@ export async function DELETE(req: NextRequest) {
     await prisma.debt.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('debts', error);
   }
 }

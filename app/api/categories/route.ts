@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import prisma from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
 
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(categories);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('categories', error);
   }
 }
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(category, { status: 201 });
   } catch (error: any) {
     if (error.code === 'P2002') return NextResponse.json({ error: 'Nama kategori sudah ada' }, { status: 400 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('categories', error);
   }
 }
 
@@ -54,7 +55,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(category);
   } catch (error: any) {
     if (error.code === 'P2002') return NextResponse.json({ error: 'Nama kategori sudah ada' }, { status: 400 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('categories', error);
   }
 }
 
@@ -77,6 +78,6 @@ export async function DELETE(req: NextRequest) {
     await prisma.category.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('categories', error);
   }
 }

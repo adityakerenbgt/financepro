@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getDailyReport, getWeeklyReport, getMonthlyReport } from '@/lib/services';
 import { requirePro } from '@/lib/auth';
 
@@ -38,6 +39,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'type must be daily, weekly, or monthly' }, { status: 400 });
   } catch (error: any) {
     console.error('GET /api/reports error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('reports', error);
   }
 }

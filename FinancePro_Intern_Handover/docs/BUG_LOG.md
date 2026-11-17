@@ -14,7 +14,8 @@ Terakhir diperbarui: 17 Nov 2026.
 |---|---|---|---|
 | 1 | **Kritikal** | Next.js 14.2.35 punya advisory kritikal/tinggi (RCE pada Image Optimizer, DoS Server Components/Actions, SSRF) yang hanya diperbaiki di 15.5.28+. | **Ditutup**: upgrade ke Next 15.5.29 + React 19 + lucide-react 0.469 (`cookies()`/`params` dibuat async). `npm audit --omit=dev`: kritikal 0. |
 | 2 | Sedang | Tidak ada header keamanan. | **Ditutup**: CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, HSTS; `X-Powered-By` dimatikan. Diuji tanpa pelanggaran CSP di dashboard, transaksi, upgrade. |
-| 3 | Rendah | `/api/admin/users` mengembalikan 403 (bukan 401) untuk pengunjung tanpa login; 500-nya mengembalikan `error.message` mentah. Tidak ada akses tak sah. | Terbuka (rapikan saat T-DEBT: pakai `requireAdminUser` + pesan generik). |
+| 3 | Rendah | `/api/admin/users` mengembalikan 403 (bukan 401) tanpa login; semua 500 route mengembalikan `error.message` mentah (bisa membocorkan detail Prisma). | **Ditutup** (T-DEBT-3): `serverError()` + `requireAdminUser`. |
+| 7 | **Tinggi** | Ubah transaksi ke rekening baru yang ditolak batas paket FREE meninggalkan saldo rekening lama rusak (saldo dibalik sebelum validasi, tanpa rollback). Juga transaksi+saldo tidak atomik di create/hapus/transfer/bayar utang. | **Ditutup** (T-DEBT-5): validasi dulu, lalu satu `$transaction`. Tes 14 gagal di kode lama (0 ≠ -10000), lulus di kode baru. |
 | 4 | Rendah | `npm audit` masih 3 "high" transitif **hanya saat build** (`@sentry/nextjs`→rollup, postcss di dalam Next). Tidak ikut berjalan di runtime produksi. | Diterima; perbaikannya butuh Sentry 11 / Next 16 (major). |
 | 5 | Info | Rate limit memakai memori proses bila Upstash belum diset → tidak efektif di Vercel serverless. | Terbuka: isi `UPSTASH_REDIS_REST_URL/TOKEN` sebelum produksi. |
 | 6 | Info | Dev server Next 15 sempat restart sendiri ("approaching memory threshold") saat suite panjang; hanya mode dev. | Dicatat. |

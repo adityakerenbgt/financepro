@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { getCategories, getAccounts, getUserProfile } from '@/lib/services';
 import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('setup', error);
   }
 }
 
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('setup', error);
   }
 }
 
@@ -120,6 +121,6 @@ export async function PUT(req: NextRequest) {
   } catch (error: any) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('setup', error);
   }
 }

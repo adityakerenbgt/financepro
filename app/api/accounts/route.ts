@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import prisma from '@/lib/db';
 import { assertCanCreateAccount, planLimitResponse } from '@/lib/planLimits';
 import { getUserFromRequest } from '@/lib/auth';
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('accounts', error);
   }
 }
 
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
     if (error.code === 'P2002') return NextResponse.json({ error: 'Nama rekening sudah ada' }, { status: 400 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('accounts', error);
   }
 }
 
@@ -86,7 +87,7 @@ export async function PATCH(req: NextRequest) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
     if (error.code === 'P2002') return NextResponse.json({ error: 'Nama rekening sudah ada' }, { status: 400 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('accounts', error);
   }
 }
 
@@ -112,6 +113,6 @@ export async function DELETE(req: NextRequest) {
   } catch (error: any) {
     const limited = planLimitResponse(error);
     if (limited) return limited;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('accounts', error);
   }
 }

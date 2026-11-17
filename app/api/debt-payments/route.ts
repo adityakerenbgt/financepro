@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverError } from '@/lib/apiError';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate, getMonthString, getWeekString, generateTxId } from '@/lib/utils';
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
     // Verify account belongs to user
     const account = await prisma.account.findFirst({ where: { id: accountId, userId: user.userId } });
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+
+    const payAmount = Number(amount);
+    if (!Number.isFinite(payAmount) || payAmount <= 0) return NextResponse.json({ error: 'Nominal harus berupa angka lebih dari 0' }, { status: 400 });
 
     const parsedDate = parseDate(date);
     const month = getMonthString(parsedDate);
@@ -50,33 +54,31 @@ export async function POST(req: NextRequest) {
     const txType = isPiutang ? 'Pemasukan' : 'Pengeluaran';
     const description = isPiutang ? `Penerimaan dari ${debtName}` : `Pembayaran ${debtName}`;
 
-    const tx = await prisma.transaction.create({
-      data: {
-        userId: user.userId,
-        txId,
-        date: parsedDate,
-        categoryId: category.id,
-        description,
-        accountId,
-        type: txType as TransactionType,
-        amount: parseFloat(amount),
-        note: notes || null,
-        month,
-        week,
-      },
-      include: { category: true, account: true },
-    });
-
-    // Update account balance
-    const balanceChange = isPiutang ? parseFloat(amount) : -parseFloat(amount);
-    await prisma.account.update({
-      where: { id: accountId },
-      data: { balance: { increment: balanceChange } },
-    });
+    // Atomik: transaksi + saldo dalam satu transaksi database (T-DEBT-5).
+    const balanceChange = isPiutang ? payAmount : -payAmount;
+    const [tx] = await prisma.$transaction([
+      prisma.transaction.create({
+        data: {
+          userId: user.userId,
+          txId,
+          date: parsedDate,
+          categoryId: category.id,
+          description,
+          accountId,
+          type: txType as TransactionType,
+          amount: payAmount,
+          note: notes || null,
+          month,
+          week,
+        },
+        include: { category: true, account: true },
+      }),
+      prisma.account.update({ where: { id: accountId }, data: { balance: { increment: balanceChange } } }),
+    ]);
 
     return NextResponse.json(tx, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('debt-payments', error);
   }
 }
 
@@ -107,6 +109,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(payments);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError('debt-payments', error);
   }
 }
