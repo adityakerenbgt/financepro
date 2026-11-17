@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { UserPlus, Trash2, KeyRound, ShieldCheck, User, Pencil, Sparkles } from 'lucide-react';
 import { useLang, localeOf } from '@/app/i18n';
 import { TRIAL_DAYS } from '@/lib/plans';
+import TelegramBotCard from '../../components/TelegramBotCard';
 
 interface AppUser {
   id: string;
@@ -155,6 +156,8 @@ export default function AdminPage() {
           {t('Tambah User', 'Add User')}
         </button>
       </div>
+
+      <TelegramBotCard />
 
       {/* Add User Modal */}
       {showAdd && (

@@ -39,7 +39,7 @@ Variabel lain bersifat opsional di lokal (email dilewati, rate limit pakai memor
 | `npm run db:push` · `db:seed` · `db:studio` | Skema, seed admin, Prisma Studio |
 | `npm run storage:setup` | Membuat bucket privat bukti pembayaran (Supabase Storage) |
 | `npm run telegram:poll` | Menjalankan bot Telegram lokal (long polling, tanpa URL publik) untuk uji |
-| `npm run telegram:webhook -- https://domain` | Mendaftarkan webhook Telegram (setelah deploy) |
+| `npm run telegram:webhook -- https://domain` | Mendaftarkan webhook Telegram dari terminal (atau tombol "Aktifkan bot" di Panel Admin) |
 
 ## Dokumentasi
 

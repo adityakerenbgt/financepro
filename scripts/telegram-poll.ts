@@ -28,3 +28,5 @@ main().catch((e) => {
   console.error('Bot berhenti:', e instanceof Error ? e.message : e);
   process.exit(1);
 });
+
+export {};

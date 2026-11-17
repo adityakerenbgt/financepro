@@ -24,7 +24,7 @@ Target: **Vercel** (aplikasi + cron) + **Supabase** (PostgreSQL + Storage) + dom
 | Upstash Redis | Rate limit yang bekerja di serverless | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
 | Sentry (opsional) | Pelacakan error tanpa data pribadi | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`; untuk source map: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` |
 | Groq / OpenRouter / Mistral / Gemini (opsional) | Scan Nota lebih akurat (PRO). Tanpa ini Scan Nota tetap jalan (OCR di perangkat) | `RECEIPT_PROVIDER=groq` + `RECEIPT_API_KEY` (opsional `RECEIPT_MODEL`); atau `gemini` + `GEMINI_API_KEY`. Cek syarat paket gratis (batas, apakah data dipakai melatih model) sebelum produksi |
-| BotFather (opsional) | Bot Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` |
+| BotFather (opsional) | Bot Telegram | **Cukup `TELEGRAM_BOT_TOKEN`.** Rahasia webhook & username dibuat otomatis |
 
 ## 3. Vercel 🔑
 
@@ -47,12 +47,12 @@ Tambahkan domain di Vercel → Settings → Domains, lalu buat DNS CNAME (mis. `
 
 ## 5. Telegram (setelah deploy) 🔑
 
-```bash
-npm run telegram:webhook -- https://domain-anda        # mendaftarkan webhook + secret
-npm run telegram:webhook                               # cek status
-```
+1. Isi **`TELEGRAM_BOT_TOKEN`** di Vercel (dari @BotFather) lalu redeploy. Tidak ada variabel lain yang wajib.
+2. Login sebagai admin → **Panel Admin → kartu "Bot Telegram" → Aktifkan bot**. Satu klik ini mendaftarkan webhook (rahasia dibuat otomatis dari token), menu perintah, dan deskripsi bot, jadi langkah `/setcommands` di BotFather tidak perlu.
+3. Status (aktif, pesan menunggu, galat terakhir) tampil di kartu yang sama.
+4. Alternatif terminal: `npm run telegram:webhook -- https://domain-anda`.
 
-User menautkan akun lewat **Pengaturan → Hubungkan Telegram** lalu `/link KODE` ke bot.
+User menautkan akun lewat **Pengaturan → Hubungkan Telegram** lalu `/link KODE` ke bot. Bila token diganti (mis. setelah `/revoke`), klik **Perbarui** lagi.
 
 ## 6. Uji asap di produksi
 
