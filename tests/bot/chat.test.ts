@@ -87,11 +87,12 @@ after(async () => {
 const txs = () => prisma.transaction.findMany({ where: { userId: proId }, include: { category: true, account: true }, orderBy: { createdAt: 'asc' } });
 const pendingOf = async (id: string) => (await prisma.user.findUnique({ where: { id }, select: { telegramPending: true } }))?.telegramPending;
 
-test('chat asing: teks dan foto diabaikan sepenuhnya', async () => {
+test('chat asing: hanya diberi petunjuk menautkan akun, tanpa membaca/menulis data apa pun', async () => {
   setProvider(null);
-  assert.equal(await say(CX, 'makan siang 25rb'), '');
-  assert.equal(await photo(CX), '');
-  assert.equal(await tap(CX, 'ai:save'), '');
+  assert.ok((await say(CX, 'makan siang 25rb')).includes('belum terhubung'));
+  assert.ok((await photo(CX)).includes('belum terhubung'));
+  assert.equal(await tap(CX, 'ai:save'), '', 'tombol dari chat asing: tidak ada efek');
+  assert.equal((await txs()).length, 0, 'tidak ada transaksi yang tercipta');
 });
 
 test('akun FREE: kalimat bebas dan foto mengarah ke PRO, tidak ada draf', async () => {

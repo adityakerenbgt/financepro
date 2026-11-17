@@ -2,13 +2,15 @@
 // Hanya untuk pengembangan/uji:  npm run telegram:poll   (hentikan dengan Ctrl+C)
 // Memakai TELEGRAM_BOT_TOKEN dan DATABASE_URL dari env. Jangan dijalankan bersamaan dengan webhook produksi untuk bot yang sama:
 // Telegram hanya mengizinkan satu cara menerima update, jadi skrip ini MENGHAPUS webhook bot ini lebih dulu.
-import { createBot } from '../lib/telegramBot';
+// Koneksi database kecil: server dev + bot berbagi batas koneksi pooler Supabase.
+process.env.DB_POOL_SIZE ??= '2';
 
 async function main() {
   if (!process.env.TELEGRAM_BOT_TOKEN) {
     console.error('TELEGRAM_BOT_TOKEN belum diisi di .env / .env.local');
     process.exit(1);
   }
+  const { createBot } = await import('../lib/telegramBot'); // diimpor setelah env di atas siap
   const bot = createBot();
   const me = await bot.api.getMe().catch((e: unknown) => {
     console.error('Token ditolak Telegram (salah/dicabut?):', e instanceof Error ? e.message : e);

@@ -73,6 +73,14 @@ export function createBot(opts: BotOptions = {}): Bot<BotCtx> {
   const bot = new Bot<BotCtx>(token, { ...(opts.botInfo ? { botInfo: opts.botInfo } : {}), ...(opts.apiRoot ? { client: { apiRoot } } : {}) });
   if (opts.transformer) bot.api.config.use(opts.transformer);
 
+  // Tanpa penangan ini, satu kesalahan sesaat (mis. database tak terjangkau) MENGHENTIKAN bot pada mode long polling.
+  // Kesalahan dicatat (Sentry menangkapnya lewat console.error) dan user diberi pesan umum; bot tetap hidup.
+  bot.catch(async (err) => {
+    const detail = err.error instanceof Error ? err.error.message.split('\n').slice(-2).join(' ') : String(err.error);
+    console.error('[telegram] kesalahan saat memproses update:', detail);
+    try { await err.ctx.reply('⚠️ Terjadi gangguan sementara. Coba lagi sebentar lagi.'); } catch { /* tidak bisa membalas: abaikan */ }
+  });
+
   // ---------- Gerbang: hanya chat pribadi, tertaut, dan sesuai paket ----------
   bot.use(async (ctx, next) => {
     const chat = ctx.chat;
@@ -88,7 +96,9 @@ export function createBot(opts: BotOptions = {}): Bot<BotCtx> {
 
     const user = await getUserByChat(chatId);
     if (!user) {
-      if (parsed) await ctx.reply(NOT_LINKED, HTML); // teks biasa dari chat asing diabaikan
+      // Chat pribadi yang belum tertaut selalu diberi petunjuk menautkan akun (bukan didiamkan, agar tidak terkesan bot mati).
+      // Aman: hanya chat pribadi (grup sudah diabaikan di atas) dan dibatasi 40 pesan/menit per chat. Tidak ada data yang dibaca/ditulis.
+      if (ctx.message) await ctx.reply(NOT_LINKED, HTML);
       return;
     }
 
