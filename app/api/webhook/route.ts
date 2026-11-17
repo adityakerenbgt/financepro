@@ -1,38 +1,45 @@
-// ============================================================
-// Telegram Webhook Handler
-// Receives updates from Telegram and passes to grammY bot
-// ============================================================
+// Telegram webhook. Wajib memakai secret token (header X-Telegram-Bot-Api-Secret-Token) yang diset saat setWebhook;
+// tanpa TELEGRAM_WEBHOOK_SECRET endpoint menolak semua permintaan (fail closed).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createBot } from '@/lib/telegramBot';
 import { webhookCallback } from 'grammy';
+import { timingSafeEqual } from 'crypto';
 
-// Cache bot instance to avoid re-creating on every request
-let botInstance: ReturnType<typeof createBot> | null = null;
+export const dynamic = 'force-dynamic';
 
-function getBot() {
-  if (!botInstance) {
-    botInstance = createBot();
+let handler: ((req: Request) => Promise<Response>) | null = null;
+let handlerSecret = '';
+
+function getHandler(secret: string) {
+  if (!handler || handlerSecret !== secret) {
+    handler = webhookCallback(createBot(), 'std/http', { secretToken: secret });
+    handlerSecret = secret;
   }
-  return botInstance;
+  return handler;
 }
 
 export async function POST(req: NextRequest) {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  // Telegram hanya mengizinkan A-Z a-z 0-9 _ - (1-256 karakter)
+  if (!secret || !/^[A-Za-z0-9_-]{1,256}$/.test(secret)) {
+    return NextResponse.json({ error: 'Webhook belum dikonfigurasi' }, { status: 503 });
+  }
+  // Verifikasi secret SEBELUM menyentuh bot (menghindari panggilan getMe & pemrosesan untuk pemanggil tak sah)
+  const given = Buffer.from(req.headers.get('x-telegram-bot-api-secret-token') ?? '');
+  const expected = Buffer.from(secret);
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const bot = getBot();
-    const handler = webhookCallback(bot, 'std/http');
-
-    // Convert Next.js request to standard Request for grammY
-    const response = await handler(req);
-    return response;
+    return await getHandler(secret)(req);
   } catch (error) {
-    console.error('Webhook error:', error);
-    // Always return 200 to Telegram to prevent retries
+    console.error('Webhook error:', error instanceof Error ? error.message : error);
+    // 200 agar Telegram tidak mengulang update yang bermasalah
     return NextResponse.json({ ok: true });
   }
 }
 
-// Telegram sends GET to verify webhook — just return OK
 export async function GET() {
-  return NextResponse.json({ status: 'FinancePro bot webhook is active' });
+  return NextResponse.json({ status: 'ok' });
 }

@@ -8,6 +8,7 @@ import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang } from '@/app/i18n';
 import { useCurrency } from '@/app/currency-context';
 import CurrencySwitcher from '../../components/CurrencySwitcher';
+import TelegramLinkCard from '../../components/TelegramLinkCard';
 import { accountTypeLabel } from '@/lib/labels';
 import { fetchJson, fetchList } from '@/lib/clientFetch';
 
@@ -257,6 +258,8 @@ export default function SettingsPage() {
           {saving ? t('Menyimpan...', 'Saving...') : saved ? t('✓ Tersimpan!', '✓ Saved!') : t('Simpan Profil', 'Save Profile')}
         </button>
       </div>
+
+      <TelegramLinkCard />
 
       {/* Categories */}
       <div className="card space-y-4">

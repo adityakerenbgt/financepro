@@ -18,6 +18,12 @@ model User {
   trialEndsAt            DateTime?
   // Tanggal kedaluwarsa (planExpiresAt) yang sudah dikirimi pengingat; mencegah email ganda per periode.
   renewalReminderSentFor DateTime?
+  // Bot Telegram: satu chat pribadi tertaut ke satu akun. Status percakapan multi-langkah disimpan di sini
+  // (bukan di memori proses, yang hilang di serverless).
+  telegramChatId    String?   @unique
+  telegramPending   String?
+  telegramPendingAt DateTime?
+  telegramLinkCodes TelegramLinkCode[]
   // Awal pekan (Senin) yang digest-nya sudah diproses (terkirim atau dilewati karena tanpa aktivitas).
   lastDigestWeek         DateTime?
   termsAcceptedAt        DateTime?
@@ -62,6 +68,18 @@ model UserProfile {
   emailDigest           Boolean   @default(true)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+}
+
+// Kode tautan Telegram sekali pakai (6 digit, berlaku 10 menit). Dihapus saat dipakai.
+model TelegramLinkCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 enum RecurringFrequency {
