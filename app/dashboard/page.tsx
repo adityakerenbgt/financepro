@@ -57,7 +57,7 @@ export default function DashboardPage() {
       const json = await res.json();
       setData(res.ok && json?.kpi ? json : null);
     } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
+      console.warn('Gagal memuat data dashboard (jaringan/server sedang restart?):', err instanceof Error ? err.message : err);
     } finally {
       setLoading(false);
     }

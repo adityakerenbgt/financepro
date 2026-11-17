@@ -13,7 +13,8 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 function datasourceUrl(): string | undefined {
   const url = process.env.DATABASE_URL;
   if (!url || /[?&]connection_limit=/.test(url)) return url;
-  const limit = process.env.DB_POOL_SIZE || '5';
+  // Pengembangan lokal: kecil (3) karena server dev, bot polling, dan skrip uji berbagi batas 15 klien pooler Supabase.
+  const limit = process.env.DB_POOL_SIZE || (process.env.NODE_ENV === 'production' ? '5' : '3');
   return `${url}${url.includes('?') ? '&' : '?'}connection_limit=${limit}`;
 }
 
