@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverError } from '@/lib/apiError';
+import { parseBody, debtCreateSchema } from '@/lib/validators';
 import { getDebtSummaries } from '@/lib/services';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -23,11 +24,9 @@ export async function POST(req: NextRequest) {
     const auth = await requirePro(req);
     if (auth.error) return auth.error;
     const user = auth.user;
-    const body = await req.json();
-    const { debtType, debtName, limitOrPrincipal, interestRate, tenor, monthlyPayment, startDate, isPiutang } = body;
-    if (!debtType || !debtName || limitOrPrincipal === undefined) {
-      return NextResponse.json({ error: 'debtType, debtName, and limitOrPrincipal are required' }, { status: 400 });
-    }
+    const parsed = parseBody(debtCreateSchema, await req.json().catch(() => null));
+    if (!parsed.ok) return parsed.response;
+    const { debtType, debtName, limitOrPrincipal, interestRate, tenor, monthlyPayment, startDate, isPiutang } = parsed.data;
     if (debtType === 'Revolving' && !isPiutang) {
       await prisma.account.upsert({
         where: { userId_name: { userId: user.userId, name: debtName } },
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
       });
     }
     const debt = await prisma.debt.create({
-      data: { userId: user.userId, debtType: debtType as DebtType, debtName, limitOrPrincipal: parseFloat(limitOrPrincipal), interestRate: parseFloat(interestRate || '0'), tenor: tenor ? parseInt(tenor) : null, monthlyPayment: monthlyPayment ? parseFloat(monthlyPayment) : null, startDate: startDate ? parseDate(startDate) : null, isPiutang: !!isPiutang },
+      data: { userId: user.userId, debtType: debtType as DebtType, debtName, limitOrPrincipal, interestRate: interestRate ?? 0, tenor: tenor ?? null, monthlyPayment: monthlyPayment ?? null, startDate: startDate ? parseDate(startDate) : null, isPiutang: !!isPiutang },
     });
     return NextResponse.json(debt, { status: 201 });
   } catch (error: any) {

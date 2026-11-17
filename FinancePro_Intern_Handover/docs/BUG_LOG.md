@@ -18,6 +18,8 @@ Terakhir diperbarui: 17 Nov 2026.
 | 7 | **Tinggi** | Ubah transaksi ke rekening baru yang ditolak batas paket FREE meninggalkan saldo rekening lama rusak (saldo dibalik sebelum validasi, tanpa rollback). Juga transaksi+saldo tidak atomik di create/hapus/transfer/bayar utang. | **Ditutup** (T-DEBT-5): validasi dulu, lalu satu `$transaction`. Tes 14 gagal di kode lama (0 ≠ -10000), lulus di kode baru. |
 | 4 | Rendah | `npm audit` masih 3 "high" transitif **hanya saat build** (`@sentry/nextjs`→rollup, postcss di dalam Next). Tidak ikut berjalan di runtime produksi. | Diterima; perbaikannya butuh Sentry 11 / Next 16 (major). |
 | 5 | Info | Rate limit memakai memori proses bila Upstash belum diset → tidak efektif di Vercel serverless. | Terbuka: isi `UPSTASH_REDIS_REST_URL/TOKEN` sebelum produksi. |
+| 8 | Rendah | `/api/debt-payments` memakai `isPiutang`/`debtName` dari body klien untuk menentukan kategori & arah transaksi. | **Ditutup**: diambil dari record utang di database. |
+| 9 | Rendah | JWT milik akun yang sudah dihapus tetap berlaku sampai 30 hari; rute yang hanya memakai `getUserFromRequest` (tanpa cek DB) merespons 500 generik (FK) alih-alih 401. Tidak ada akses data. | Terbuka (pakai `getCurrentUser` di rute tersisa / cek di middleware). |
 | 6 | Info | Dev server Next 15 sempat restart sendiri ("approaching memory threshold") saat suite panjang; hanya mode dev. | Dicatat. |
 
 ## Checklist kesiapan produksi (T-6.4)

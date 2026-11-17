@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverError } from '@/lib/apiError';
+import { parseBody, transferCreateSchema } from '@/lib/validators';
 import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate } from '@/lib/utils';
@@ -28,10 +29,9 @@ export async function POST(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const { date, fromAccount, toAccount, amount, notes } = await req.json();
-    if (!date || !fromAccount || !toAccount || !amount) {
-      return NextResponse.json({ error: 'date, fromAccount, toAccount, amount are required' }, { status: 400 });
-    }
+    const parsedBody = parseBody(transferCreateSchema, await req.json().catch(() => null));
+    if (!parsedBody.ok) return parsedBody.response;
+    const { date, fromAccount, toAccount, amount: parsedAmount, notes } = parsedBody.data;
     if (fromAccount === toAccount) {
       return NextResponse.json({ error: 'Rekening asal dan tujuan tidak boleh sama' }, { status: 400 });
     }
@@ -44,8 +44,6 @@ export async function POST(req: NextRequest) {
     if (!toAcc) return NextResponse.json({ error: `Rekening "${toAccount}" tidak ditemukan` }, { status: 404 });
 
     const parsedDate = parseDate(date);
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return NextResponse.json({ error: 'Nominal harus berupa angka lebih dari 0' }, { status: 400 });
 
     // Generate ID
     const count = await prisma.transfer.count({ where: { userId: user.userId, date: { gte: new Date(parsedDate.setHours(0,0,0,0)) } } });

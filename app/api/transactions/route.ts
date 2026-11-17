@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverError } from '@/lib/apiError';
+import { parseBody, transactionCreateSchema, transactionUpdateSchema } from '@/lib/validators';
 import { createTransaction, getTransactions } from '@/lib/services';
 import { getUserFromRequest } from '@/lib/auth';
 import prisma from '@/lib/db';
@@ -35,15 +36,9 @@ export async function POST(req: NextRequest) {
     const user = getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { date, category, description, account, type, amount, note } = body;
-    if (!date || !category || !description || !account || !type || !amount) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-    if (!['Pemasukan', 'Pengeluaran'].includes(type)) {
-      return NextResponse.json({ error: 'type must be "Pemasukan" or "Pengeluaran"' }, { status: 400 });
-    }
-    const tx = await createTransaction(user.userId, { date, category, description, account, type, amount: parseFloat(amount), note });
+    const parsed = parseBody(transactionCreateSchema, await req.json().catch(() => null));
+    if (!parsed.ok) return parsed.response;
+    const tx = await createTransaction(user.userId, parsed.data);
     return NextResponse.json(tx, { status: 201 });
   } catch (error: any) {
     const limited = planLimitResponse(error);
@@ -57,19 +52,12 @@ export async function PATCH(req: NextRequest) {
     const user = getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { id, date, category, description, account, type, amount, note } = body;
-    if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    const parsed = parseBody(transactionUpdateSchema, await req.json().catch(() => null));
+    if (!parsed.ok) return parsed.response;
+    const { id, date, category, description, account, type, amount: newAmount, note } = parsed.data;
 
     const existing = await prisma.transaction.findFirst({ where: { id, userId: user.userId } });
     if (!existing) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
-
-    if (type !== 'Pemasukan' && type !== 'Pengeluaran') return NextResponse.json({ error: 'type must be "Pemasukan" or "Pengeluaran"' }, { status: 400 });
-    const newAmount = Number(amount);
-    if (!Number.isFinite(newAmount) || newAmount <= 0) return NextResponse.json({ error: 'Nominal harus berupa angka lebih dari 0' }, { status: 400 });
-    if (typeof category !== 'string' || !category.trim() || typeof account !== 'string' || !account.trim()) {
-      return NextResponse.json({ error: 'Kategori dan rekening wajib diisi' }, { status: 400 });
-    }
 
     // Cari/buat kategori & rekening DULU (bisa melempar batas paket FREE). Saldo baru disentuh di dalam satu transaksi
     // database di bawah, jadi kegagalan di sini tidak pernah meninggalkan saldo setengah berubah (T-DEBT-5).

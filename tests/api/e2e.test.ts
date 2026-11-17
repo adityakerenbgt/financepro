@@ -294,4 +294,10 @@ test('15. Transfer & bayar utang: atomik, validasi nominal, dan pembatalan menge
   assert.equal((await c.post('/api/debt-payments', { debtId: debt.id, accountId: accA.id, date: today(), amount: 'abc' })).status, 400);
   assert.equal((await c.post('/api/debt-payments', { debtId: debt.id, accountId: accA.id, date: today(), amount: 40000 })).status, 201);
   assert.equal(await balanceOf(c, 'A'), 60000);
+  // ringkasan utang (hasil groupBy, T-DEBT-9) memuat pembayaran tadi
+  const debts = (await c.get('/api/debts')).json;
+  const list = Array.isArray(debts) ? debts : debts.debts;
+  const d1 = list.find((x: any) => x.debtName === 'Utang Uji');
+  assert.equal(d1.totalPaid, 40000);
+  assert.equal(d1.remainingDebt, 460000);
 });

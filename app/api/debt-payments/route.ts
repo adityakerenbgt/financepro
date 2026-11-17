@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverError } from '@/lib/apiError';
+import { parseBody, debtPaymentSchema } from '@/lib/validators';
 import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { parseDate, getMonthString, getWeekString, generateTxId } from '@/lib/utils';
@@ -11,10 +12,9 @@ export async function POST(req: NextRequest) {
     const auth = await requirePro(req);
     if (auth.error) return auth.error;
     const user = auth.user;
-    const { debtId, isPiutang, debtName, amount, date, notes, accountId } = await req.json();
-    if (!debtId || !amount || !date || !accountId) {
-      return NextResponse.json({ error: 'debtId, amount, date, accountId are required' }, { status: 400 });
-    }
+    const parsedBody = parseBody(debtPaymentSchema, await req.json().catch(() => null));
+    if (!parsedBody.ok) return parsedBody.response;
+    const { debtId, amount: payAmount, date, notes, accountId } = parsedBody.data;
 
     // Verify debt belongs to user
     const debt = await prisma.debt.findFirst({ where: { id: debtId, userId: user.userId } });
@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     const account = await prisma.account.findFirst({ where: { id: accountId, userId: user.userId } });
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
 
-    const payAmount = Number(amount);
-    if (!Number.isFinite(payAmount) || payAmount <= 0) return NextResponse.json({ error: 'Nominal harus berupa angka lebih dari 0' }, { status: 400 });
+    // Jenis & nama utang SELALU dari database, bukan dari body (klien tidak boleh menentukan kategori/arah transaksi).
+    const { isPiutang, debtName } = debt;
 
     const parsedDate = parseDate(date);
     const month = getMonthString(parsedDate);

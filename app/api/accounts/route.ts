@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverError } from '@/lib/apiError';
+import { parseBody, accountCreateSchema } from '@/lib/validators';
 import prisma from '@/lib/db';
 import { assertCanCreateAccount, planLimitResponse } from '@/lib/planLimits';
 import { getUserFromRequest } from '@/lib/auth';
@@ -43,12 +44,13 @@ export async function POST(req: NextRequest) {
     const user = getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { name, type, initialBalance } = await req.json();
-    if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
+    const parsed = parseBody(accountCreateSchema, await req.json().catch(() => null));
+    if (!parsed.ok) return parsed.response;
+    const { name, type, initialBalance } = parsed.data;
 
     await assertCanCreateAccount(user.userId);
     const account = await prisma.account.create({
-      data: { userId: user.userId, name: name.trim(), type: type || 'bank', balance: parseFloat(initialBalance || '0') },
+      data: { userId: user.userId, name, type: type || 'bank', balance: initialBalance },
     });
     return NextResponse.json(account, { status: 201 });
   } catch (error: any) {
