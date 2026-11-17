@@ -1,3 +1,4 @@
+import { adminNewPaymentEmail } from './email/templates/adminNewPayment';
 import prisma from './db';
 import { PAYMENT_PLANS, type PaymentPlanKey } from './plans';
 import { extendedExpiry } from './plan';
@@ -70,5 +71,27 @@ export async function notifyPaymentReviewed(id: string, action: 'approve' | 'rej
   } catch (err) {
     console.error('[payments] gagal menyiapkan email notifikasi:', err instanceof Error ? err.message : err);
     return 'failed';
+  }
+}
+
+// Memberi tahu admin ada permintaan pembayaran baru. Penerima: ADMIN_NOTIFY_EMAIL (bisa beberapa, dipisah koma),
+// bila kosong semua akun ADMIN yang punya email. Tidak pernah melempar error; kegagalan kirim tidak menggagalkan permintaan user.
+export async function notifyAdminNewPayment(id: string): Promise<void> {
+  try {
+    const pr = await prisma.paymentRequest.findUnique({
+      where: { id },
+      select: { plan: true, amount: true, userNote: true, createdAt: true, user: { select: { username: true, email: true } } },
+    });
+    if (!pr) return;
+    let recipients = (process.env.ADMIN_NOTIFY_EMAIL ?? '').split(',').map(e => e.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    if (recipients.length === 0) {
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN', email: { not: null } }, select: { email: true } });
+      recipients = admins.map(a => a.email!).filter(Boolean);
+    }
+    for (const to of recipients.slice(0, 5)) {
+      await sendEmail(adminNewPaymentEmail({ to, username: pr.user.username, email: pr.user.email, plan: pr.plan as PaymentPlanKey, amount: pr.amount, userNote: pr.userNote, createdAt: pr.createdAt }));
+    }
+  } catch (err) {
+    console.error('[payments] gagal memberi tahu admin:', err instanceof Error ? err.message : err);
   }
 }

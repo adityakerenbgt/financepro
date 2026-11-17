@@ -3,6 +3,7 @@ import prisma from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { rateLimit, tooManyRequests } from '@/lib/rateLimit';
 import { PAYMENT_PLANS, type PaymentPlanKey } from '@/lib/plans';
+import { notifyAdminNewPayment } from '@/lib/payments';
 import { StorageNotConfiguredError, isValidProofPath, proofExists } from '@/lib/storage';
 
 const PUBLIC_FIELDS = {
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       if (!created) {
         return NextResponse.json({ error: 'Kamu masih punya permintaan pembayaran yang menunggu konfirmasi' }, { status: 409 });
       }
+      await notifyAdminNewPayment(created.id); // tidak pernah melempar; maks. 5 dtk per email
       return NextResponse.json(created, { status: 201 });
     } catch (error: any) {
       // P2034 = konflik serializable (permintaan serentak); P2002 = bukti yang sama dipakai dua kali

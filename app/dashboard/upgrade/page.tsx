@@ -9,6 +9,7 @@ import { useLang } from '@/app/i18n';
 import { formatMoney } from '@/lib/currency';
 import PaymentRequestForm from '@/app/components/PaymentRequestForm';
 import WhatsAppPayButton from '@/app/components/WhatsAppPayButton';
+import { ADMIN_HOURS_LABEL, isAdminHours } from '@/lib/adminHours';
 
 export default function UpgradePage() {
   const { plan, role } = useAuth();
@@ -102,6 +103,12 @@ export default function UpgradePage() {
                   <li>{t('Unggah bukti transfer di formulir pembayaran di bawah', 'Upload the proof in the payment form below')}</li>
                   <li>{t('Admin mengonfirmasi dan PRO aktif dalam 1x24 jam', 'The admin confirms and PRO is activated within 24 hours')}</li>
                 </ol>
+                <p className="mt-3 text-xs text-slate-500">
+                  {t(`Jam konfirmasi admin: ${ADMIN_HOURS_LABEL}.`, `Admin confirmation hours: ${ADMIN_HOURS_LABEL} (WIB, UTC+7).`)}{' '}
+                  {isAdminHours()
+                    ? t('Admin sedang bertugas.', 'The admin is currently on duty.')
+                    : t('Di luar jam kerja, konfirmasi diproses saat jam kerja berikutnya.', 'Outside these hours, confirmation is processed at the next working hours.')}
+                </p>
               </div>
               <WhatsAppPayButton />
               <a
