@@ -10,6 +10,7 @@ import { formatMoney as formatRp } from '@/lib/currency';
 import { useLang, localeOf } from '@/app/i18n';
 import { fetchList } from '@/lib/clientFetch';
 import DateRangePresets from '../components/DateRangePresets';
+import ExportButtons from '../components/ExportButtons';
 
 const PAGE_SIZE = 25;
 
@@ -195,6 +196,7 @@ export default function TransactionsPage() {
               </button>
               <button onClick={fetchTransactions} className="btn-secondary text-sm px-3 py-2 ml-auto"><RefreshCw className="w-4 h-4" /></button>
             </div>
+            <ExportButtons kind="transactions" params={{ startDate, endDate, type: typeFilter, category: categoryFilter, search }} />
           </div>
 
           <div className="card overflow-x-auto">

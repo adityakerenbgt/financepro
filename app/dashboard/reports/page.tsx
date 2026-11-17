@@ -1,5 +1,6 @@
 'use client';
 
+import ExportButtons from '../../components/ExportButtons';
 import { useState } from 'react';
 import { CalendarDays, RefreshCw } from 'lucide-react';
 import { getISOWeek, getYear } from 'date-fns';
@@ -178,6 +179,7 @@ export default function ReportsPage() {
               )}
             </div>
             <RunButton loading={loading} onClick={fetchReport} />
+            <ExportButtons kind="monthly" params={{ month: monthInputToDisplay(monthRaw) }} disabled={!monthRaw} />
           </div>
         )}
 
