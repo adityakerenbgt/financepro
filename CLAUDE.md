@@ -1,10 +1,10 @@
 # FinancePro — Project Context untuk Claude
 
 ## Apa ini?
-Aplikasi manajemen keuangan pribadi berbasis web (Next.js 14) dengan sistem multi-user dan freemium model. Target pasar: publik umum Indonesia.
+Aplikasi manajemen keuangan pribadi berbasis web (Next.js 15) dengan sistem multi-user dan freemium model. Target pasar: publik umum Indonesia.
 
 ## Tech Stack
-- **Frontend**: Next.js 14 App Router, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 15 App Router, React 19, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes (Node.js runtime)
 - **Database**: PostgreSQL via Supabase
 - **ORM**: Prisma
@@ -26,7 +26,8 @@ UserPlan: FREE | PRO
 ```
 - ADMIN = full access semua fitur tanpa cek plan
 - PRO = akses semua fitur
-- FREE = hanya Dashboard, Transaksi, 1 Rekening, Telegram bot basic
+- FREE = Dashboard & ekspor bulan berjalan, Transaksi (+ impor), 1 Rekening, Telegram bot basic
+- Trial = akun baru PRO selama 3 hari (`TRIAL_DAYS`, `lib/plans.ts`); plan efektif dihitung `lib/plan.ts` dari DB, bukan JWT
 
 ## Fitur yang sudah ada
 - [x] Login / Logout
@@ -50,25 +51,21 @@ UserPlan: FREE | PRO
 - [x] Sidebar: badge PRO/FREE, upgrade banner
 - [x] Dark/Light mode
 - [x] PWA
+- [x] Landing page, legal (ToS/Privacy), onboarding, reset password & email (Resend)
+- [x] Payment request (bukti transfer, admin approve), cron auto-downgrade, pengingat perpanjangan
+- [x] Transaksi berulang (PRO), Net Worth, preset rentang tanggal, impor CSV/Excel, ekspor CSV/Excel/PDF
+- [x] Admin analytics, email digest mingguan, notifikasi email admin
+- [x] Bot Telegram multi-user aman (tautan /link KODE, webhook secret)
+- [x] Sentry (opsional, tanpa PII), header keamanan, rate limiting
+- [x] ID/EN + mata uang tampilan
 
 ## Yang BELUM ada (roadmap)
-- [ ] Landing page publik (/) — BLOCKER untuk launch
-- [ ] Email system (password reset, welcome, notifikasi)
-- [ ] Payment request system (upload bukti transfer, admin approve)
-- [ ] Subscription expiry auto-downgrade (cron job)
-- [ ] Renewal reminder email
-- [ ] Legal pages (ToS, Privacy Policy)
-- [ ] Onboarding flow user baru
-- [ ] Recurring transactions
-- [ ] Net Worth di dashboard
-- [ ] Search & pagination transaksi
-- [ ] Quick date ranges di dashboard
-- [ ] Import CSV/Excel
-- [ ] Export PDF/Excel
-- [ ] Error tracking (Sentry)
-- [ ] Rate limiting pada /register dan /login
-- [ ] Admin analytics (MRR, active users, conversion)
-- [ ] Email digest mingguan
+- [ ] Deploy produksi (Vercel + domain) dan `setWebhook` Telegram — butuh akun owner (lihat `DEPLOYMENT.md`)
+- [ ] Playwright (UI) + CI GitHub Actions dengan DB uji terpisah
+- [ ] Utang teknis: ESLint, Zod, `$transaction` untuk saldo, N+1, rapikan `/api/admin/users`
+- [ ] Chatbot pencatat (T-OWN-6) dan foto nota via Gemini (T-OWN-8, butuh API key)
+- [ ] Midtrans (pembayaran otomatis) — rencana nanti
+- Status rinci: `FinancePro_Intern_Handover/docs/07_TASK_BACKLOG.md` dan `BUG_LOG.md`
 
 ## Penting: Auth Architecture
 - Middleware (`middleware.ts`) jalan di **Edge Runtime** → pakai `jose` (bukan `jsonwebtoken`)
@@ -92,34 +89,32 @@ Semua Prisma query WAJIB filter `where: { userId: user.userId }`. Compound uniqu
 - Untuk schema changes: `npx prisma db push`
 - Untuk seed: `npx prisma db seed`
 
-## Environment Variables yang dibutuhkan
-```
-DATABASE_URL=postgresql://...supabase.co.../postgres
-JWT_SECRET=<min 32 karakter acak, WAJIB; app gagal start bila kosong>
-NEXT_PUBLIC_BASE_URL=http://localhost:3000 (dev) / https://financepro.grexion.ai (prod)
-TELEGRAM_BOT_TOKEN=your_token (opsional)
-```
+## Environment Variables
+Wajib: `DATABASE_URL`, `JWT_SECRET` (≥ 32 karakter; app gagal start bila kosong), `NEXT_PUBLIC_BASE_URL`. Produksi juga: `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`/`EMAIL_FROM`, `UPSTASH_REDIS_REST_*`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, `ADMIN_NOTIFY_EMAIL`. Opsional: `TELEGRAM_BOT_TOKEN`/`TELEGRAM_WEBHOOK_SECRET`/`TELEGRAM_BOT_USERNAME`, `SENTRY_*`. Daftar + penjelasan: `.env.local.example`. Jangan pernah menulis nilai rahasia di repo atau chat.
 
 ## Cara jalankan
 ```bash
-cd D:/FinancePro
-npm run dev
-# App berjalan di http://localhost:3000
+npm install && npm run db:push && npm run db:seed   # sekali
+npm run dev                                          # http://localhost:3000
+npm run test:unit                                    # unit test
+npm run test:api                                     # integrasi (butuh dev server berjalan)
 ```
+Catatan Windows: hentikan dev server sebelum `prisma db push`/`generate` (file DLL terkunci). Skrip uji DB: `DB_POOL_SIZE=2 npx tsx --env-file=.env --env-file=.env.local skrip.ts`.
 
 ## Git & Deploy
-- Repo: belum di-push ke GitHub remote (sudah `git init` dan initial commit)
-- Deploy target: Vercel
-- DNS: CNAME `financepro` → `cname.vercel-dns.com` di cPanel grexion.ai
+- Repo: GitHub private `adityakerenbgt/financepro`
+- Deploy target: Vercel + Supabase; panduan di `DEPLOYMENT.md`
+- DNS: CNAME `financepro` → `cname.vercel-dns.com`
 
 ## Pricing Plan
 - FREE: Rp 0 (transaksi, dashboard bulan ini, 1 rekening, Telegram basic)
 - PRO Monthly: Rp 29.000/bulan
 - PRO Yearly: Rp 249.000/tahun
-- Payment: manual bank transfer → WhatsApp → admin approve (Midtrans rencana nanti)
+- Payment: WhatsApp admin (tanpa data rekening di app) → transfer → unggah bukti → admin approve (Midtrans rencana nanti)
 
 ## Konvensi Kode
 - Semua API route: `getUserFromRequest(req)` → return 401 jika null
-- Pro-only API: tambahkan cek `isPro(user)` dari `lib/auth.ts`
+- Pro-only API: `requirePro(req)` dari `lib/auth.ts` (plan dibaca dari DB); route baru wajib punya skenario di `tests/api/`
+- Error route: `console.error('[nama]', error.message)` + respons generik 500 (jangan bocorkan `error.message` ke klien)
 - Halaman Pro: early return `if (role !== 'ADMIN' && plan !== 'PRO') return <ProGate feature="..." />`
 - Format Rupiah: `Rp${Math.round(n).toLocaleString('id-ID')}`

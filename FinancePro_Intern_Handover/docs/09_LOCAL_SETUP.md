@@ -12,7 +12,7 @@ Target: aplikasi berjalan di `http://localhost:3000` dengan database milikmu sen
 | Editor | VS Code / Cursor | |
 | Database | salah satu: **Supabase (gratis)** atau **Postgres lokal via Docker** | lihat §2 |
 
-Versi terpasang di proyek: Next 14.2.35 · React 18.3.1 · Prisma 5.22 · TypeScript 5.
+Versi terpasang di proyek: Next 15.5.29 · React 19 · Prisma 5.22 · TypeScript 5.
 
 ## 2. Siapkan database (pilih satu)
 
@@ -113,7 +113,11 @@ Lihat `templates/.env.example` untuk daftar lengkap. Ringkas:
 | `DATABASE_URL` | ✅ | Koneksi Postgres |
 | `JWT_SECRET` | ✅ (kode saat ini punya fallback berbahaya; P0-3 membuatnya wajib) | Tanda tangan JWT |
 | `NEXT_PUBLIC_BASE_URL` | ✅ | URL aplikasi |
-| `TELEGRAM_BOT_TOKEN` | opsional | Hanya jika mengerjakan bot |
+| `TELEGRAM_BOT_TOKEN` | opsional | Token dari @BotFather (`/newbot`) |
+| `TELEGRAM_WEBHOOK_SECRET` | wajib bila bot dipakai | Acak 16+ karakter `A-Za-z0-9_-`; tanpa ini `/api/webhook` menjawab 503 |
+| `TELEGRAM_BOT_USERNAME` | opsional | Username bot tanpa `@`, ditampilkan di Pengaturan |
+
+**Mengaktifkan bot (setelah deploy):** buat bot di @BotFather → isi 3 env di atas → `npm run telegram:webhook -- https://domain-anda` (mendaftarkan webhook + secret). Pengguna menautkan akun lewat Pengaturan → Hubungkan Telegram → kirim `/link KODE` ke bot.
 | `SEED_ADMIN_*`, `RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET`, `UPSTASH_*`, `SUPABASE_*`, `SENTRY_DSN` | belum | Diperkenalkan oleh task terkait |
 
 Variabel berawalan `NEXT_PUBLIC_` **terlihat oleh semua pengunjung** — jangan isi secret.

@@ -85,7 +85,7 @@ Istilah domain keuangan & istilah yang dipakai di kode/UI. Nilai `enum` ditulis 
 | **IDOR** | Insecure Direct Object Reference — mengakses data orang lain dengan menebak/mengetahui ID |
 | **JWT** | JSON Web Token, disimpan di cookie `auth-token` |
 | **Edge Runtime** | Lingkungan eksekusi ringan tempat `middleware.ts` berjalan (tanpa API Node penuh) |
-| **App Router** | Sistem routing Next.js 14 berbasis folder `app/` |
+| **App Router** | Sistem routing Next.js 15 berbasis folder `app/` |
 | **Route handler** | File `route.ts` yang mendefinisikan endpoint API |
 | **Server / Client component** | Komponen render di server / di browser (`'use client'`) |
 | **Seed** | Skrip mengisi data awal (`prisma/seed.ts`) |

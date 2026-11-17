@@ -2,7 +2,7 @@
 
 ## Overview
 
-FinancePro is a full-stack Next.js 14 application using the App Router. It replaces Google Sheets as the data backend with a proper relational database, while retaining all original features.
+FinancePro is a multi-user, freemium (FREE / PRO) full-stack Next.js 15 application (App Router, React 19) on PostgreSQL (Supabase). It started as a single-user Google Sheets replacement and now serves the public in Indonesian and English.
 
 ---
 
@@ -20,7 +20,7 @@ FinancePro is a full-stack Next.js 14 application using the App Router. It repla
 
 **Free options**: Supabase, Neon, Railway, Vercel Postgres (all have generous free tiers).
 
-### 2. Framework: Next.js 14 App Router
+### 2. Framework: Next.js 15 App Router
 
 **Chosen over**: Express.js + React SPA, FastAPI + React
 
@@ -39,6 +39,7 @@ FinancePro is a full-stack Next.js 14 application using the App Router. It repla
 - Webhooks fit perfectly in Next.js API routes (no separate bot process).
 - Telegraf is older and has worse TypeScript support.
 - The webhook model means the bot runs serverlessly — no always-on server needed.
+- **Security model (T-BOT-1):** the bot serves only *private* chats linked to an account via a one-time 6-digit code (Settings → Connect Telegram → `/link CODE`). Every handler loads the user from `chatId` (`lib/telegramLink.ts`); PRO commands are gated by the effective plan; multi-step state lives in the database (10-minute TTL), not in memory. The webhook requires `TELEGRAM_WEBHOOK_SECRET` (fail closed, 401/503).
 
 ### 4. Charts: Recharts
 
@@ -146,17 +147,29 @@ otherwise                → On Track
 
 ## Scalability Considerations
 
-### Current Architecture (MVP)
-- Single PostgreSQL database
-- In-memory bot session state (lost on restart)
-- No caching
+### Current architecture
+- Single PostgreSQL database (Supabase session pooler); every table is scoped by `userId`.
+- Rate limiting via Upstash Redis (in-memory fallback in dev — not effective on serverless).
+- Bot state in the database; no application-level cache.
+- Cron jobs (Vercel): plan expiry, recurring transactions, renewal reminders, weekly digest.
 
-### Easy Upgrades (when needed)
-- **Caching**: Add Upstash Redis for dashboard data (cache for 5 min)
-- **Bot Sessions**: Replace in-memory Map with Redis or DB-backed sessions
-- **Multi-user**: Add NextAuth.js + userId foreign keys to all tables
-- **Background Jobs**: Vercel Cron for monthly report generation
-- **Search**: PostgreSQL full-text search on transaction descriptions
+### Known limits / upgrades (when needed)
+- **Email throughput**: weekly digest ≈ 230 emails per Mon–Wed window; add a queue or a paid Vercel plan beyond that.
+- **Caching**: Upstash Redis for dashboard data if load grows.
+- **Reports in memory**: some report/analytics code aggregates in application memory (fine for thousands of rows per user).
+- **Dependencies**: remaining `npm audit` highs are build-time only (Sentry/rollup, PostCSS inside Next); fix needs Sentry 11 / Next 16.
+
+---
+
+## Multi-user, plans & security (summary)
+
+- **Auth**: JWT in an httpOnly cookie. API routes verify with `jsonwebtoken`; `middleware.ts` (Edge) uses `jose`. The JWT is *not* trusted for access decisions: `getCurrentUser` reloads role/plan from the DB and `lib/plan.ts` computes the **effective plan** (admin → PRO; expired PRO → FREE; trial = PRO whose expiry equals `trialEndsAt`).
+- **Gating**: `requirePro` in PRO routes; FREE is clamped server-side (dashboard and exports limited to the current WIB month, 1 account via `lib/planLimits.ts`).
+- **Isolation**: every query filters by `userId`; compound uniques are per user. `tests/api/e2e.test.ts` includes cross-user (IDOR) checks.
+- **Payments**: manual transfer via WhatsApp; proof uploaded to a private Supabase bucket; admin approve/reject is an atomic conditional update (`lib/payments.ts`).
+- **Time**: business dates use WIB (UTC+7) regardless of server timezone (`lib/dateRange.ts`, `lib/recurring.ts`).
+- **Hardening**: security headers + CSP in `next.config.js`; Sentry events are scrubbed of PII (`lib/sentryScrub.ts`); cron routes require `CRON_SECRET`.
+- **Jobs**: see `vercel.json` and `DEPLOYMENT.md`.
 
 ---
 
@@ -167,7 +180,9 @@ app/api/          — API routes (one file = one resource)
 app/dashboard/    — All authenticated pages (under layout with sidebar)
 app/transactions/ — Transactions page (outside dashboard to keep URL clean)
 lib/services.ts   — Single business logic file (keep small, split when >1000 lines)
-lib/telegramBot.ts — Bot handlers (colocated with other lib code)
+lib/telegramBot.ts, lib/telegramLink.ts — Bot handlers and account linking
+lib/export.ts, lib/import*.ts — CSV/Excel/PDF export and import
+tests/api/        — Integration tests (run against a live dev server)
 lib/utils.ts      — Pure functions only (no side effects, no DB calls)
 prisma/           — Schema + migrations + seed
 types/            — Shared TypeScript interfaces

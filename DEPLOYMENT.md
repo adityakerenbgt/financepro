@@ -1,203 +1,76 @@
-# Deployment Guide — FinancePro
+# Panduan Deploy — FinancePro
 
-## Prerequisites
+Target: **Vercel** (aplikasi + cron) + **Supabase** (PostgreSQL + Storage) + domain sendiri. Langkah yang membutuhkan akun pemilik ditandai 🔑.
 
-- Node.js 18+
-- A PostgreSQL database (Supabase recommended — free, fast setup)
-- A Telegram bot token from @BotFather
-- A Vercel account (free)
+## 0. Sebelum mulai
 
----
+- [ ] `npm run build` dan `npm run test:unit` hijau di lokal.
+- [ ] Ganti kredensial yang pernah tertempel di chat/git: password database, `SUPABASE_SERVICE_ROLE_KEY`, password admin lama, token bot Telegram bila pernah terlihat publik.
+- [ ] Repo GitHub **private**.
 
-## Step 1: Setup Database (Supabase)
+## 1. Database & Storage (Supabase) 🔑
 
-1. Go to https://supabase.com → Sign up → New Project
-2. Choose a region closest to your users
-3. Wait for the project to provision (~1 minute)
-4. Go to **Settings** → **Database** → **Connection string** → **URI**
-5. Copy the connection string (it looks like `postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres`)
-6. Replace `[password]` with your actual database password
-7. Save this as your `DATABASE_URL`
+1. Buat project; pilih region terdekat pengguna.
+2. Connect → **Session pooler** (port 5432, host `*.pooler.supabase.com`) → salin sebagai `DATABASE_URL`. Di Vercel serverless pakai pooler, bukan koneksi langsung. Atur `DB_POOL_SIZE` (mis. `5`) bila perlu.
+3. Dari lokal (satu kali, ke DB produksi): `npm run db:push` lalu `npm run db:seed` (isi `SEED_ADMIN_USERNAME/PASSWORD` sementara di `.env`, kosongkan lagi sesudahnya).
+4. Project Settings → API: salin `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY`, lalu `npm run storage:setup` (membuat bucket privat `payment-proofs`).
+5. Aktifkan backup (Database → Backups) dan catat kebijakan retensinya.
 
----
+## 2. Layanan pendukung 🔑
 
-## Step 2: Create Telegram Bot
+| Layanan | Untuk | Variabel |
+|---|---|---|
+| Resend | Email (reset password, welcome, pengingat, digest, notifikasi admin) | `RESEND_API_KEY`, `EMAIL_FROM` — verifikasi domain (SPF + DKIM) dulu |
+| Upstash Redis | Rate limit yang bekerja di serverless | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
+| Sentry (opsional) | Pelacakan error tanpa data pribadi | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`; untuk source map: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` |
+| BotFather (opsional) | Bot Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` |
 
-1. Open Telegram → Search for `@BotFather`
-2. Send `/newbot`
-3. Enter a name: e.g. `FinancePro Bot`
-4. Enter a username: e.g. `financepro_myname_bot` (must end in `bot`)
-5. BotFather will send you a token like: `1234567890:ABCdef...`
-6. Save this as your `TELEGRAM_BOT_TOKEN`
+## 3. Vercel 🔑
 
----
+1. Import repo GitHub → framework Next.js (otomatis).
+2. Isi **Environment Variables** (Production). Wajib: `DATABASE_URL`, `JWT_SECRET` (≥ 32 karakter acak, **baru**, bukan dari lokal), `NEXT_PUBLIC_BASE_URL` (`https://domain-anda`), `CRON_SECRET` (acak, baru), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, `ADMIN_NOTIFY_EMAIL`, plus layanan di tabel atas. Acak: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+3. Deploy. Cron di `vercel.json` terdaftar otomatis dan memakai `CRON_SECRET`:
 
-## Step 3: Deploy to Vercel
+| Cron | Jadwal (UTC) | WIB |
+|---|---|---|
+| `/api/cron/expire-plans` | 17:00 harian | 00:00 |
+| `/api/cron/recurring` | 17:05 harian | 00:05 |
+| `/api/cron/renewal-reminders` | 02:00 harian | 09:00 |
+| `/api/cron/weekly-digest` | 01:00 Sen–Rab | 08:00 |
 
-### Option A: Deploy via Vercel CLI
+Catatan: paket Vercel Hobby membatasi cron (frekuensi dan durasi fungsi); digest mingguan ≈ 230 email per jendela Sen–Rab.
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
+## 4. Domain 🔑
 
-# In the project directory
-vercel
+Tambahkan domain di Vercel → Settings → Domains, lalu buat DNS CNAME (mis. `financepro` → `cname.vercel-dns.com`) di penyedia DNS. HTTPS otomatis; cookie `secure` aktif di produksi.
 
-# Follow the prompts:
-# - Link to existing project? No → create new
-# - Project name: financepro
-# - Root directory: ./
-# - Build command: prisma generate && next build
-# - Output directory: (leave blank)
-```
-
-### Option B: Deploy via GitHub
-
-1. Push code to GitHub
-2. Go to https://vercel.com → New Project
-3. Import your GitHub repo
-4. Vercel will auto-detect Next.js settings
-
----
-
-## Step 4: Set Environment Variables on Vercel
-
-In Vercel Dashboard → Your Project → Settings → Environment Variables, add:
-
-| Variable | Value | Environment |
-|----------|-------|-------------|
-| `DATABASE_URL` | Your Supabase connection string | Production, Preview, Development |
-| `TELEGRAM_BOT_TOKEN` | Your bot token | Production, Preview, Development |
-| `NEXT_PUBLIC_BASE_URL` | `https://your-app.vercel.app` | Production |
-
----
-
-## Step 5: Run Database Migration
-
-After deployment, run the migration. You can do this locally with the production DATABASE_URL:
+## 5. Telegram (setelah deploy) 🔑
 
 ```bash
-# Set production DATABASE_URL temporarily
-export DATABASE_URL="postgresql://..."
-
-# Push schema to production database
-npm run db:push
-
-# (Optional) Seed with demo data
-npm run db:seed
+npm run telegram:webhook -- https://domain-anda        # mendaftarkan webhook + secret
+npm run telegram:webhook                               # cek status
 ```
 
-Or use Vercel CLI to run it in the cloud:
+User menautkan akun lewat **Pengaturan → Hubungkan Telegram** lalu `/link KODE` ke bot.
 
-```bash
-vercel env pull .env.production.local
-npx prisma db push --schema ./prisma/schema.prisma
-```
+## 6. Uji asap di produksi
 
----
+- [ ] Landing & login terbuka; cookie `auth-token` bertanda Secure + HttpOnly.
+- [ ] Daftar akun baru → email welcome tiba → login → tambah transaksi → dashboard.
+- [ ] Lupa password → email tiba → reset berhasil.
+- [ ] Akun FREE ditolak di fitur PRO; admin ubah ke PRO → terbuka.
+- [ ] Unggah bukti bayar → admin menerima email → approve → user PRO.
+- [ ] `curl -i https://domain-anda/api/cron/expire-plans` → 401; dengan `Authorization: Bearer $CRON_SECRET` → 200.
+- [ ] Cek header: `curl -I https://domain-anda/login` memuat CSP, HSTS, X-Frame-Options.
+- [ ] Vercel → Cron Jobs: keempat cron terdaftar; jalankan manual sekali.
+- [ ] (Bila Sentry aktif) picu error uji dan pastikan event masuk tanpa email/password.
 
-## Step 6: Set Telegram Webhook
+## 7. Rollback
 
-After deployment, set the webhook so Telegram sends updates to your app:
+Vercel → Deployments → pilih deployment sebelumnya → **Promote to Production** (instan, tanpa build ulang). Perubahan skema database tidak ikut di-rollback: buat perubahan skema yang kompatibel mundur (tambah kolom, jangan hapus langsung).
 
-```bash
-# Replace YOUR_BOT_TOKEN and YOUR_VERCEL_URL
-curl -X POST "https://api.telegram.org/botYOUR_BOT_TOKEN/setWebhook" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://YOUR_VERCEL_URL/api/webhook"}'
-```
+## 8. Operasional
 
-Expected response:
-```json
-{"ok":true,"result":true,"description":"Webhook was set"}
-```
-
-Verify webhook is set:
-```bash
-curl "https://api.telegram.org/botYOUR_BOT_TOKEN/getWebhookInfo"
-```
-
----
-
-## Step 7: Verify Everything Works
-
-1. Open `https://your-app.vercel.app` → you should see the landing page
-2. Open `https://your-app.vercel.app/dashboard` → dashboard should load
-3. Open Telegram → find your bot → send `/start`
-4. Bot should reply with the welcome message
-
----
-
-## Local Development
-
-```bash
-# 1. Copy env example
-cp .env.local.example .env.local
-
-# 2. Edit .env.local with your values
-# DATABASE_URL can be a local Postgres or Supabase URL
-
-# 3. Push schema
-npm run db:push
-
-# 4. Seed data
-npm run db:seed
-
-# 5. Start dev server
-npm run dev
-```
-
-### Testing Telegram Bot Locally
-
-Use ngrok to expose your local server:
-
-```bash
-# Install ngrok: https://ngrok.com
-ngrok http 3000
-
-# Set webhook to ngrok URL
-curl -X POST "https://api.telegram.org/botYOUR_TOKEN/setWebhook" \
-  -d '{"url": "https://XXXX.ngrok.io/api/webhook"}'
-```
-
----
-
-## Troubleshooting
-
-### "PrismaClientInitializationError"
-→ Check `DATABASE_URL` is correct and the database is accessible from Vercel's IP range (Supabase allows all IPs by default).
-
-### Bot doesn't respond
-→ Check webhook is set: `curl https://api.telegram.org/botTOKEN/getWebhookInfo`
-→ Check Vercel function logs: Vercel Dashboard → Logs
-
-### "Module not found: @prisma/client"
-→ Make sure `postinstall` script runs: `"postinstall": "prisma generate"` in package.json (already set).
-
-### Dashboard shows no data
-→ Run the seed script: `npm run db:seed`
-→ Or add data via the web UI or bot commands.
-
----
-
-## Updating the App
-
-```bash
-# Make changes, then:
-vercel --prod
-# Vercel auto-deploys from GitHub if connected
-```
-
-If you changed the Prisma schema:
-```bash
-npm run db:migrate  # development
-# For production: npm run db:push (simpler, no migration files)
-```
-
----
-
-## Custom Domain (Optional)
-
-In Vercel Dashboard → Your Project → Settings → Domains → Add Domain.
-Update `NEXT_PUBLIC_BASE_URL` to your custom domain.
-Update the Telegram webhook URL accordingly.
+- Setelah mengganti env di Vercel, lakukan redeploy.
+- Pantau: Vercel Logs, Sentry, dashboard Supabase (koneksi/pool), kuota Resend.
+- `npm audit --omit=dev` berkala; upgrade Next.js 15.x patch saat tersedia.
