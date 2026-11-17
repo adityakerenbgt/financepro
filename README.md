@@ -9,7 +9,7 @@ Aplikasi manajemen keuangan pribadi untuk pengguna Indonesia: multi-user, freemi
 | Paket | Isi |
 |---|---|
 | **FREE** | Dashboard bulan berjalan, transaksi tak terbatas (+ impor CSV/Excel, ekspor bulan berjalan), 1 rekening, bot Telegram dasar (`/add`, `/transaksi`) |
-| **PRO** | Rekening tak terbatas, transaksi berulang, nabung & investasi, utang & piutang, aset, budget, goals, laporan harian/mingguan/bulanan, Net Worth, rentang tanggal bebas, ekspor CSV/Excel/PDF, perintah bot lengkap |
+| **PRO** | Rekening tak terbatas, transaksi berulang, nabung & investasi, utang & piutang, aset, budget, goals, laporan harian/mingguan/bulanan, Net Worth, rentang tanggal bebas, ekspor CSV/Excel/PDF, **Scan Nota** (foto → transaksi via Gemini), perintah bot lengkap |
 | **Trial** | Akun baru otomatis PRO selama 3 hari |
 | **Admin** | Kelola user & plan, setujui pembayaran, analytics (MRR, konversi), email notifikasi pembayaran baru |
 
@@ -34,7 +34,7 @@ Variabel lain bersifat opsional di lokal (email dilewati, rate limit pakai memor
 | `npm run dev` / `build` / `start` | Development / build produksi / jalankan build |
 | `npm run lint` | ESLint (`--max-warnings=0`); `npm run format` = Prettier |
 | `npm run test:unit` | Unit test (node:test) |
-| `npm run test:api` | 13 skenario integrasi API (butuh `npm run dev` berjalan; memakai DB di `.env`) |
+| `npm run test:api` | Skenario integrasi API (butuh `npm run dev` berjalan; memakai DB di `.env`). Uji Scan Nota dengan Gemini tiruan: lihat `tests/api/receipt.test.ts` |
 | `npm run db:push` · `db:seed` · `db:studio` | Skema, seed admin, Prisma Studio |
 | `npm run storage:setup` | Membuat bucket privat bukti pembayaran (Supabase Storage) |
 | `npm run telegram:webhook -- https://domain` | Mendaftarkan webhook Telegram (setelah deploy) |

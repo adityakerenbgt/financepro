@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  ScanLine,
   BarChart3, Wallet, TrendingUp, CreditCard, PieChart,
   Target, CalendarDays, Settings, Menu, X, Landmark,
   Sun, Moon, ChevronLeft, ChevronRight, Building2, LogOut, ShieldCheck, Sparkles, Receipt, LineChart, Repeat, FileUp,
@@ -24,6 +25,7 @@ const allNavItems = [
   { href: '/dashboard',            label: 'Dashboard', en: 'Dashboard',         icon: BarChart3 },
   { href: '/transactions',         label: 'Transaksi', en: 'Transactions',         icon: Wallet },
   { href: '/dashboard/recurring',  label: 'Transaksi Berulang', en: 'Recurring',    icon: Repeat },
+  { href: '/dashboard/scan',       label: 'Scan Nota', en: 'Scan Receipt',        icon: ScanLine },
   { href: '/dashboard/import',     label: 'Import Data', en: 'Import Data',         icon: FileUp },
   { href: '/dashboard/rekening',   label: 'Rekening', en: 'Accounts',          icon: Building2 },
   { href: '/dashboard/savings',    label: 'Nabung & Investasi', en: 'Savings & Investments',icon: TrendingUp },
