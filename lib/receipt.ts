@@ -19,7 +19,7 @@ export class GeminiNotConfiguredError extends Error {}
 export type ReceiptProvider = 'ondevice' | 'gemini' | 'groq' | 'openrouter' | 'mistral' | 'openai';
 
 export const COMPAT_PRESETS: Record<'groq' | 'openrouter' | 'mistral' | 'openai', { label: string; base: string; model: string }> = {
-  groq: { label: 'Groq', base: 'https://api.groq.com/openai/v1', model: 'meta-llama/llama-4-scout-17b-16e-instruct' },
+  groq: { label: 'Groq', base: 'https://api.groq.com/openai/v1', model: 'qwen/qwen3.8-27b' },
   openrouter: { label: 'OpenRouter', base: 'https://openrouter.ai/api/v1', model: 'nvidia/nemotron-nano-12b-v2-vl:free' },
   mistral: { label: 'Mistral', base: 'https://api.mistral.ai/v1', model: 'mistral-small-latest' },
   openai: { label: 'OpenAI-compatible', base: '', model: '' },
