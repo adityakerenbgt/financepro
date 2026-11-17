@@ -32,6 +32,7 @@ Variabel lain bersifat opsional di lokal (email dilewati, rate limit pakai memor
 | Perintah | Fungsi |
 |---|---|
 | `npm run dev` / `build` / `start` | Development / build produksi / jalankan build |
+| `npm run lint` | ESLint (`--max-warnings=0`); `npm run format` = Prettier |
 | `npm run test:unit` | Unit test (node:test) |
 | `npm run test:api` | 13 skenario integrasi API (butuh `npm run dev` berjalan; memakai DB di `.env`) |
 | `npm run db:push` · `db:seed` · `db:studio` | Skema, seed admin, Prisma Studio |

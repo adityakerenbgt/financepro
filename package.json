@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "format": "prettier --write \"{app,lib}/**/*.{ts,tsx}\"",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
@@ -38,7 +39,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "recharts": "^2.12.0",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^2.2.0",
+    "zod": "3.23.8"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
@@ -47,7 +49,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.29",
     "postcss": "^8.4.0",
+    "prettier": "^3.3.3",
     "prisma": "^5.12.0",
     "tailwindcss": "^3.4.0",
     "tsx": "^4.7.0",

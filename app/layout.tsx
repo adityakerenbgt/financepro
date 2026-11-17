@@ -1,3 +1,4 @@
+import ServiceWorkerRegister from './components/ServiceWorkerRegister';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { cookies } from 'next/headers';
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'FinancePro',
   },
-  icons: { icon: '/icon.svg', apple: '/icon.svg' },
+  icons: { icon: '/icon.svg', apple: '/icon-192.png' },
 };
 
 export const viewport: Viewport = {
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} className="dark">
       <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font -- root layout App Router: dimuat di semua halaman */}
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
@@ -45,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="antialiased">
         <Providers initialLang={lang} initialCurrency={currency}>
           {children}
+          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>

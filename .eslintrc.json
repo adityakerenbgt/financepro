@@ -1,0 +1,8 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": ["tests/**", "scripts/**", "prisma/**", "*.config.js"],
+  "rules": {
+    "react/no-unescaped-entities": "off",
+    "react-hooks/exhaustive-deps": "warn"
+  }
+}
