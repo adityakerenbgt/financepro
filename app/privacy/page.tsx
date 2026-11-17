@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import LegalPage, { isEnglish, type LegalSection } from '../components/legal/LegalPage';
 
-export function generateMetadata(): Metadata {
-  return { title: isEnglish() ? 'Privacy Policy — FinancePro' : 'Kebijakan Privasi — FinancePro' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await isEnglish()) ? 'Privacy Policy — FinancePro' : 'Kebijakan Privasi — FinancePro' };
 }
 
 const sections: LegalSection[] = [

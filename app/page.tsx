@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import LandingContent from './components/landing/LandingContent';
 
-export function generateMetadata(): Metadata {
-  const en = cookies().get('fp-lang')?.value === 'en';
+export async function generateMetadata(): Promise<Metadata> {
+  const en = (await cookies()).get('fp-lang')?.value === 'en';
 
   if (en) {
     return {

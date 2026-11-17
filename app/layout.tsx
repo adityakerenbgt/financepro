@@ -26,8 +26,8 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const jar = cookies();
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const jar = await cookies();
   const lang = jar.get('fp-lang')?.value === 'en' ? 'en' : 'id';
   const cur = jar.get('fp-currency')?.value;
   const currency = isSupportedCurrency(cur) ? cur : DEFAULT_CURRENCY;

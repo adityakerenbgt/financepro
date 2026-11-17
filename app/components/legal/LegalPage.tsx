@@ -4,12 +4,12 @@ import { ArrowLeft, BarChart3 } from 'lucide-react';
 
 export type LegalSection = { h: [string, string]; p: [string, string][] };
 
-export function isEnglish(): boolean {
-  return cookies().get('fp-lang')?.value === 'en';
+export async function isEnglish(): Promise<boolean> {
+  return (await cookies()).get('fp-lang')?.value === 'en';
 }
 
 // Tata letak halaman legal (server component, publik). Isi teks diberikan oleh halaman pemanggil.
-export default function LegalPage({
+export default async function LegalPage({
   title,
   updated,
   sections,
@@ -18,7 +18,7 @@ export default function LegalPage({
   updated: string;
   sections: LegalSection[];
 }) {
-  const en = isEnglish();
+  const en = await isEnglish();
   const t = (pair: [string, string]) => (en ? pair[1] : pair[0]);
 
   return (

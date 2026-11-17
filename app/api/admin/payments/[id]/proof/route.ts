@@ -6,12 +6,12 @@ import { StorageNotConfiguredError, createProofViewUrl } from '@/lib/storage';
 const VIEW_SECONDS = 60;
 
 // Mengembalikan signed URL berumur pendek (60 dtk) untuk melihat bukti pembayaran. Hanya ADMIN.
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { error } = await requireAdminUser(req);
     if (error) return error;
 
-    const pr = await prisma.paymentRequest.findUnique({ where: { id: params.id }, select: { proofPath: true } });
+    const pr = await prisma.paymentRequest.findUnique({ where: { id: (await params).id }, select: { proofPath: true } });
     if (!pr) return NextResponse.json({ error: 'Permintaan tidak ditemukan' }, { status: 404 });
 
     const url = await createProofViewUrl(pr.proofPath, VIEW_SECONDS);
