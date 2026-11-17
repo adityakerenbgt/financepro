@@ -35,3 +35,6 @@ Thumbs.db
 
 # Kredensial akun demo (dibuat oleh npm run db:seed-demo)
 .demo-credentials.txt
+
+# Cache build TypeScript (dibuat ulang otomatis)
+*.tsbuildinfo
