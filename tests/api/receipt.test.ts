@@ -45,7 +45,7 @@ test('Scan nota: tanpa login 401, FREE 403, unggahan tidak valid ditolak', async
   const pro = await mk('pro', 'PRO');
   const prov = await fetch(BASE + '/api/receipts/scan', { headers: { cookie: pro.cookie, 'x-forwarded-for': pro.ip } });
   assert.equal(prov.status, 200);
-  assert.ok(['ondevice', 'gemini'].includes((await prov.json()).provider));
+  assert.ok(['ondevice', 'gemini', 'groq', 'openrouter', 'mistral', 'openai'].includes((await prov.json()).provider));
   assert.equal((await fetch(BASE + '/api/receipts/scan', { headers: { cookie: free.cookie, 'x-forwarded-for': free.ip } })).status, 403);
   assert.equal((await upload(pro, null)).status, 400, 'tanpa file');
   assert.equal((await upload(pro, new TextEncoder().encode('<svg onload=alert(1)>'), 'x.jpg', 'image/jpeg')).status, 400, 'SVG menyamar jadi jpg');
@@ -100,5 +100,52 @@ test('Scan nota (Gemini tiruan): hasil dinormalisasi, tidak menyimpan apa pun, k
 
     reply = 'bukan json {{{';
     assert.equal((await upload(pro, JPEG)).status, 502);
+  } finally { srv.close(); }
+});
+
+const compat = process.env.RECEIPT_FAKE === 'compat';
+
+test('Scan nota (penyedia kompatibel-OpenAI tiruan): kunci di header, gambar data-URL, jawaban berpagar ``` diterima, fallback json_mode', { skip: !compat && 'set RECEIPT_FAKE=compat; server: RECEIPT_PROVIDER=groq RECEIPT_API_BASE=http://localhost:9998 RECEIPT_API_KEY=fake' }, async () => {
+  const seen: { url?: string; auth?: string; body?: any }[] = [];
+  let mode: 'ok' | 'fence' | 'no-json-mode' | 'down' = 'ok';
+  const good = { merchant: 'Toko Groq', date: '2026-11-16', total: 'Rp 54.300', category: 'Makan & Minum', items: [] };
+  const srv = http.createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      seen.push({ url: req.url, auth: String(req.headers.authorization), body });
+      res.setHeader('Content-Type', 'application/json');
+      if (mode === 'down') { res.statusCode = 503; return res.end('{}'); }
+      if (mode === 'no-json-mode' && body.response_format) { res.statusCode = 400; return res.end('{"error":"response_format unsupported"}'); }
+      const fenceOpen = '```json', fenceClose = '```';
+      const content = mode === 'fence' ? ['Ini hasilnya:', fenceOpen, JSON.stringify(good), fenceClose].join('\n') : JSON.stringify(good);
+      res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+    });
+  }).listen(9998);
+  try {
+    const pro = await mk('compat', 'PRO');
+    const prov: any = await (await fetch(BASE + '/api/receipts/scan', { headers: { cookie: pro.cookie, 'x-forwarded-for': pro.ip } })).json();
+    assert.equal(prov.provider, 'groq');
+
+    const r1 = await upload(pro, JPEG);
+    assert.equal(r1.status, 200);
+    const j: any = await r1.json();
+    assert.equal(j.draft.amount, 54300);
+    assert.equal(seen[0].url, '/chat/completions');
+    assert.equal(seen[0].auth, 'Bearer fake');
+    assert.ok(seen[0].body.messages[0].content[1].image_url.url.startsWith('data:image/jpeg;base64,'));
+    assert.deepEqual(seen[0].body.response_format, { type: 'json_object' });
+
+    mode = 'fence';
+    assert.equal(((await (await upload(pro, JPEG)).json()) as any).draft.amount, 54300, 'jawaban berpagar ``` diterima');
+
+    mode = 'no-json-mode'; seen.length = 0;
+    assert.equal((await upload(pro, JPEG)).status, 200);
+    assert.equal(seen.length, 2, 'dicoba ulang tanpa response_format');
+    assert.equal(seen[1].body.response_format, undefined);
+
+    mode = 'down';
+    assert.equal((await upload(pro, JPEG)).status, 502, 'penyedia mati -> 502 (UI jatuh ke OCR di perangkat)');
   } finally { srv.close(); }
 });

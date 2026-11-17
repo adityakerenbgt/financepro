@@ -9,7 +9,7 @@ Aplikasi manajemen keuangan pribadi untuk pengguna Indonesia: multi-user, freemi
 | Paket | Isi |
 |---|---|
 | **FREE** | Dashboard bulan berjalan, transaksi tak terbatas (+ impor CSV/Excel, ekspor bulan berjalan), 1 rekening, bot Telegram dasar (`/add`, `/transaksi`) |
-| **PRO** | Rekening tak terbatas, transaksi berulang, nabung & investasi, utang & piutang, aset, budget, goals, laporan harian/mingguan/bulanan, Net Worth, rentang tanggal bebas, ekspor CSV/Excel/PDF, **Scan Nota** (foto → transaksi; OCR di perangkat, Gemini opsional), perintah bot lengkap |
+| **PRO** | Rekening tak terbatas, transaksi berulang, nabung & investasi, utang & piutang, aset, budget, goals, laporan harian/mingguan/bulanan, Net Worth, rentang tanggal bebas, ekspor CSV/Excel/PDF, **Scan Nota** (foto → transaksi; OCR di perangkat, atau AI gratis Groq/OpenRouter/Mistral/Gemini), perintah bot lengkap |
 | **Trial** | Akun baru otomatis PRO selama 3 hari |
 | **Admin** | Kelola user & plan, setujui pembayaran, analytics (MRR, konversi), email notifikasi pembayaran baru |
 

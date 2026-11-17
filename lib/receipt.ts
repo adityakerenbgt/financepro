@@ -14,9 +14,24 @@ export class GeminiNotConfiguredError extends Error {}
 
 // Pembaca nota yang aktif. Bawaan "ondevice" (OCR di browser, gratis, foto tidak keluar dari perangkat).
 // Ubah ke "gemini" (env RECEIPT_PROVIDER=gemini + GEMINI_API_KEY) bila kunci Gemini sudah siap.
-export type ReceiptProvider = 'ondevice' | 'gemini';
+// Penyedia: "ondevice" (OCR di browser), "gemini", atau penyedia kompatibel-OpenAI: "groq", "openrouter", "mistral", "openai"
+// (alamat sendiri lewat RECEIPT_API_BASE). Model & kunci diatur lewat RECEIPT_MODEL dan RECEIPT_API_KEY.
+export type ReceiptProvider = 'ondevice' | 'gemini' | 'groq' | 'openrouter' | 'mistral' | 'openai';
+
+export const COMPAT_PRESETS: Record<'groq' | 'openrouter' | 'mistral' | 'openai', { label: string; base: string; model: string }> = {
+  groq: { label: 'Groq', base: 'https://api.groq.com/openai/v1', model: 'meta-llama/llama-4-scout-17b-16e-instruct' },
+  openrouter: { label: 'OpenRouter', base: 'https://openrouter.ai/api/v1', model: 'nvidia/nemotron-nano-12b-v2-vl:free' },
+  mistral: { label: 'Mistral', base: 'https://api.mistral.ai/v1', model: 'mistral-small-latest' },
+  openai: { label: 'OpenAI-compatible', base: '', model: '' },
+};
+
 export function getReceiptProvider(): ReceiptProvider {
-  return process.env.RECEIPT_PROVIDER === 'gemini' ? 'gemini' : 'ondevice';
+  const p = process.env.RECEIPT_PROVIDER;
+  return p === 'gemini' || p === 'groq' || p === 'openrouter' || p === 'mistral' || p === 'openai' ? p : 'ondevice';
+}
+
+export function providerLabel(p: ReceiptProvider): string {
+  return p === 'ondevice' ? 'on-device' : p === 'gemini' ? 'Google Gemini' : COMPAT_PRESETS[p].label;
 }
 
 // Tipe gambar ditentukan dari isi file (magic bytes), bukan dari header klien.
@@ -77,4 +92,54 @@ export async function readReceiptWithGemini(image: Uint8Array, mime: string, cat
   const text: unknown = body?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof text !== 'string') throw new ReceiptReadError('Respons Gemini kosong');
   try { return JSON.parse(text); } catch { throw new ReceiptReadError('Respons Gemini bukan JSON'); }
+}
+
+// Bentuk JSON untuk model tanpa responseSchema (penyedia kompatibel-OpenAI).
+const JSON_SHAPE = `Jawab HANYA dengan satu objek JSON tanpa teks lain, bentuk: {"merchant": string, "date": "YYYY-MM-DD" atau "", "total": number, "category": string, "items": [{"name": string, "amount": number}]}`;
+
+// Mengambil objek JSON dari jawaban model (boleh dibungkus ```json ... ``` atau diawali kalimat pengantar).
+export function extractJsonObject(text: string): unknown {
+  const t = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  try { return JSON.parse(t); } catch { /* coba ambil objek pertama */ }
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch { /* jatuh ke error di bawah */ } }
+  throw new ReceiptReadError('Respons model bukan JSON');
+}
+
+// Penyedia kompatibel-OpenAI (Groq, OpenRouter, Mistral, atau alamat sendiri). Tidak mencatat gambar/hasil ke log.
+export async function readReceiptWithOpenAICompat(
+  provider: 'groq' | 'openrouter' | 'mistral' | 'openai', image: Uint8Array, mime: string, categories: string[],
+): Promise<unknown> {
+  const key = process.env.RECEIPT_API_KEY;
+  if (!key) throw new GeminiNotConfiguredError('RECEIPT_API_KEY belum diset');
+  const preset = COMPAT_PRESETS[provider];
+  const base = (process.env.RECEIPT_API_BASE || preset.base).replace(/\/+$/, '');
+  const model = (process.env.RECEIPT_MODEL || preset.model).trim();
+  if (!base || !model) throw new GeminiNotConfiguredError('RECEIPT_API_BASE / RECEIPT_MODEL belum diset');
+
+  const dataUrl = `data:${mime};base64,${Buffer.from(image).toString('base64')}`;
+  const call = async (withJsonMode: boolean): Promise<Response> => {
+    try {
+      return await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model, temperature: 0, max_tokens: 1500,
+          ...(withJsonMode ? { response_format: { type: 'json_object' } } : {}),
+          messages: [{ role: 'user', content: [{ type: 'text', text: `${PROMPT(categories)}\n${JSON_SHAPE}` }, { type: 'image_url', image_url: { url: dataUrl } }] }],
+        }),
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+      });
+    } catch (e) {
+      throw new ReceiptReadError(e instanceof Error && e.name === 'TimeoutError' ? 'Penyedia AI timeout' : 'Penyedia AI tidak terjangkau');
+    }
+  };
+
+  let res = await call(true);
+  if (res.status === 400) res = await call(false); // sebagian model menolak response_format: ulangi tanpa mode JSON
+  if (!res.ok) throw new ReceiptReadError(`${preset.label} HTTP ${res.status}`);
+  const body: any = await res.json().catch(() => null);
+  const text: unknown = body?.choices?.[0]?.message?.content;
+  if (typeof text !== 'string' || !text.trim()) throw new ReceiptReadError('Respons penyedia AI kosong');
+  return extractJsonObject(text);
 }

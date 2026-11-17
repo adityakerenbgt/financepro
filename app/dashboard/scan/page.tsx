@@ -14,7 +14,7 @@ import { readReceiptOnDevice } from '@/lib/receiptOcr';
 
 interface Draft { date: string; amount: number; merchant: string; category: string; items: { name: string; amount: number }[] }
 type Step = 'pick' | 'reading' | 'review' | 'saving' | 'done';
-type Provider = 'ondevice' | 'gemini';
+type Provider = string; // 'ondevice' atau penyedia di server (gemini, groq, openrouter, mistral, openai)
 
 const MAX_SIDE = 1600;
 
@@ -42,6 +42,8 @@ export default function ScanReceiptPage() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [provider, setProvider] = useState<Provider>('ondevice');
+  const [providerLabel, setProviderLabel] = useState('');
+  const [fellBack, setFellBack] = useState(false);
   const [ocrText, setOcrText] = useState('');
   const [ocrProgress, setOcrProgress] = useState<{ percent: number; stage: 'download' | 'read' } | null>(null);
   const [step, setStep] = useState<Step>('pick');
@@ -59,7 +61,7 @@ export default function ScanReceiptPage() {
   // Pembaca yang aktif ditentukan server (env RECEIPT_PROVIDER): "ondevice" (bawaan) atau "gemini".
   useEffect(() => {
     if (!isPro) return;
-    fetch('/api/receipts/scan').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.provider === 'gemini') setProvider('gemini'); }).catch(() => {});
+    fetch('/api/receipts/scan').then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.provider && d.provider !== 'ondevice') { setProvider(d.provider); setProviderLabel(d.label || d.provider); } }).catch(() => {});
   }, [isPro]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   // Akun baru belum punya rekening: bawaannya "Tunai" (dibuat otomatis saat transaksi pertama disimpan).
@@ -72,7 +74,7 @@ export default function ScanReceiptPage() {
 
   const reset = () => {
     setStep('pick'); setError(''); setWarnings([]); setItems([]); setIncludeItems(false);
-    setOcrText(''); setOcrProgress(null);
+    setOcrText(''); setOcrProgress(null); setFellBack(false);
     setPreviewUrl(''); setDate(''); setAmount(''); setDescription(''); setCategory('');
     if (fileInput.current) fileInput.current.value = '';
   };
@@ -85,13 +87,19 @@ export default function ScanReceiptPage() {
       const blob = await shrink(file);
       let d: Draft;
       let warns: string[];
-      if (provider === 'gemini') {
+      let serverDraft: { draft: Draft; warnings: string[] } | null = null;
+      if (provider !== 'ondevice') {
         const fd = new FormData();
         fd.append('file', blob, 'nota.jpg');
         const res = await fetch('/api/receipts/scan', { method: 'POST', body: fd });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || t('Gagal membaca nota', 'Failed to read receipt'));
-        d = data.draft; warns = data.warnings ?? [];
+        if (res.ok) serverDraft = { draft: data.draft, warnings: data.warnings ?? [] };
+        // Penyedia AI gagal/tidak aktif/kena batas gratis (502/503/504): jatuh ke pembacaan di perangkat. Kesalahan lain ditampilkan.
+        else if (![502, 503, 504].includes(res.status)) throw new Error(data.error || t('Gagal membaca nota', 'Failed to read receipt'));
+        else setFellBack(true);
+      }
+      if (serverDraft) {
+        d = serverDraft.draft; warns = serverDraft.warnings;
       } else {
         const cats = expenseCats.includes('Lainnya') ? expenseCats : [...expenseCats, 'Lainnya'];
         const r = await readReceiptOnDevice(blob, cats, (percent, stage) => setOcrProgress({ percent, stage }));
@@ -146,8 +154,8 @@ export default function ScanReceiptPage() {
 
       <div className="flex items-start gap-2 text-xs text-slate-400 bg-slate-800/50 border border-slate-700 rounded-lg p-3">
         <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-        <span>{provider === 'gemini'
-          ? t('Foto dikirim ke Google Gemini hanya untuk dibaca, lalu dibuang: FinancePro tidak menyimpan fotonya. Pastikan nota tidak memuat data sensitif lain.', 'The photo is sent to Google Gemini only to be read, then discarded: FinancePro does not store it. Make sure the receipt has no other sensitive data.')
+        <span>{provider !== 'ondevice'
+          ? t(`Foto dikirim ke ${providerLabel} (layanan AI pihak ketiga) hanya untuk dibaca, lalu dibuang: FinancePro tidak menyimpan fotonya. Pastikan nota tidak memuat data sensitif lain.`, `The photo is sent to ${providerLabel} (a third-party AI service) only to be read, then discarded: FinancePro does not store it. Make sure the receipt has no other sensitive data.`)
           : t('Nota dibaca langsung di perangkatmu: foto tidak dikirim ke server mana pun. Hasil bacaan bisa kurang akurat, jadi periksa sebelum menyimpan.', 'The receipt is read on your device: the photo is not sent to any server. Results may be less accurate, so please check before saving.')}</span>
       </div>
 
@@ -179,6 +187,11 @@ export default function ScanReceiptPage() {
       {(step === 'review' || step === 'saving') && (
         <div className="card space-y-4">
           {previewUrl && <img src={previewUrl} alt="" className="max-h-40 rounded-lg mx-auto" />}
+          {fellBack && (
+            <p className="text-xs text-sky-300 bg-sky-500/10 border border-sky-500/30 rounded-lg p-3">
+              {t('Pembaca AI sedang tidak tersedia, jadi nota dibaca di perangkatmu (kurang akurat). Periksa hasilnya dengan teliti.', 'The AI reader is unavailable, so the receipt was read on your device (less accurate). Please check the result carefully.')}
+            </p>
+          )}
           {warnings.length > 0 && (
             <ul className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-1">
               {warnings.map((w) => <li key={w}>• {warnText[w] ? t(...warnText[w]) : w}</li>)}

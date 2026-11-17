@@ -3,7 +3,8 @@ import { requirePro } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { rateLimit, tooManyRequests } from '@/lib/rateLimit';
 import {
-  GeminiNotConfiguredError, MAX_IMAGE_BYTES, getReceiptProvider, ReceiptReadError, normalizeReceipt, readReceiptWithGemini, sniffImageMime,
+  GeminiNotConfiguredError, MAX_IMAGE_BYTES, getReceiptProvider, providerLabel, ReceiptReadError, normalizeReceipt, readReceiptWithGemini,
+  readReceiptWithOpenAICompat, sniffImageMime,
 } from '@/lib/receipt';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,8 @@ export const maxDuration = 30;
 export async function GET(req: NextRequest) {
   const { error } = await requirePro(req);
   if (error) return error;
-  return NextResponse.json({ provider: getReceiptProvider() });
+  const provider = getReceiptProvider();
+  return NextResponse.json({ provider, label: providerLabel(provider) });
 }
 
 // POST multipart/form-data (field "file": JPEG/PNG/WebP, maks. 4 MB) -> { draft, warnings }.
@@ -47,15 +49,18 @@ export async function POST(req: NextRequest) {
     const categories = cats.map((c) => c.name);
     if (!categories.includes('Lainnya')) categories.push('Lainnya');
 
-    if (getReceiptProvider() !== 'gemini') {
+    const provider = getReceiptProvider();
+    if (provider === 'ondevice') {
       return NextResponse.json({ error: 'Pembaca nota di server tidak aktif; foto dibaca di perangkat.', code: 'PROVIDER_ONDEVICE' }, { status: 409 });
     }
-    const raw = await readReceiptWithGemini(bytes, mime, categories);
+    const raw = provider === 'gemini'
+      ? await readReceiptWithGemini(bytes, mime, categories)
+      : await readReceiptWithOpenAICompat(provider, bytes, mime, categories);
     const result = normalizeReceipt(raw, { categories });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof GeminiNotConfiguredError) {
-      console.error('[receipts/scan] GEMINI_API_KEY belum diset');
+      console.error('[receipts/scan] kunci/konfigurasi penyedia AI belum diset');
       return NextResponse.json({ error: 'Fitur scan nota belum aktif. Silakan hubungi admin.' }, { status: 503 });
     }
     if (err instanceof ReceiptReadError) {

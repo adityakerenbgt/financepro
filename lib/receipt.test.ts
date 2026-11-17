@@ -61,3 +61,24 @@ test('normalizeReceipt: teks dibersihkan (kontrol, panjang), item dibatasi, tota
   assert.equal(r.draft.amount, 1000);
   assert.ok(r.warnings.includes('amount_rounded'));
 });
+
+import { COMPAT_PRESETS, extractJsonObject, getReceiptProvider, providerLabel } from './receipt';
+
+test('extractJsonObject: JSON polos, berpagar ```, dengan kalimat pengantar; menolak yang bukan JSON', () => {
+  assert.deepEqual(extractJsonObject('{"total": 1000}'), { total: 1000 });
+  assert.deepEqual(extractJsonObject('```json\n{"total": 1000}\n```'), { total: 1000 });
+  assert.deepEqual(extractJsonObject('Tentu, ini hasilnya:\n{"total": 1000, "items": []}\nSemoga membantu.'), { total: 1000, items: [] });
+  assert.throws(() => extractJsonObject('maaf saya tidak bisa membaca gambar'), ReceiptReadError);
+  assert.throws(() => extractJsonObject('{rusak'), ReceiptReadError);
+});
+
+test('getReceiptProvider: hanya nilai dikenal; selain itu on-device', () => {
+  const old = process.env.RECEIPT_PROVIDER;
+  try {
+    for (const p of ['gemini', 'groq', 'openrouter', 'mistral', 'openai']) { process.env.RECEIPT_PROVIDER = p; assert.equal(getReceiptProvider(), p); }
+    for (const bad of ['', 'GROQ', 'evil', 'ondevice']) { process.env.RECEIPT_PROVIDER = bad; assert.equal(getReceiptProvider(), 'ondevice', bad); }
+    delete process.env.RECEIPT_PROVIDER; assert.equal(getReceiptProvider(), 'ondevice');
+  } finally { if (old === undefined) delete process.env.RECEIPT_PROVIDER; else process.env.RECEIPT_PROVIDER = old; }
+  assert.equal(providerLabel('groq'), 'Groq');
+  assert.ok(COMPAT_PRESETS.groq.base.startsWith('https://'));
+});
