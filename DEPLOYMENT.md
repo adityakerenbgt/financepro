@@ -11,7 +11,9 @@ Target: **Vercel** (aplikasi + cron) + **Supabase** (PostgreSQL + Storage) + dom
 ## 1. Database & Storage (Supabase) 🔑
 
 1. Buat project; pilih region terdekat pengguna.
-2. Connect → **Session pooler** (port 5432, host `*.pooler.supabase.com`) → salin sebagai `DATABASE_URL`. Di Vercel serverless pakai pooler, bukan koneksi langsung. Atur `DB_POOL_SIZE` (mis. `5`) bila perlu.
+2. Connect → ambil dua alamat dari **Supabase → Connect** (host `*.pooler.supabase.com`):
+   - **`DATABASE_URL` untuk Vercel = Transaction pooler (port `6543`)**, tambahkan `?pgbouncer=true&connection_limit=1` di akhir. Di serverless, mode session (port 5432) cepat kehabisan koneksi (`EMAXCONNSESSION`, batas ~15 klien). Aplikasi ini sudah diuji penuh di mode transaction (15 skenario API, transaksi interaktif Serializable, dan transaksi batch).
+   - **Session pooler (port `5432`)** hanya untuk perintah dari komputer Anda: `npm run db:push` dan `db:seed`. Isi sementara di `.env` lokal saat menjalankannya.
 3. Dari lokal (satu kali, ke DB produksi): `npm run db:push` lalu `npm run db:seed` (isi `SEED_ADMIN_USERNAME/PASSWORD` sementara di `.env`, kosongkan lagi sesudahnya).
 4. Project Settings → API: salin `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY`, lalu `npm run storage:setup` (membuat bucket privat `payment-proofs`).
 5. Aktifkan backup (Database → Backups) dan catat kebijakan retensinya.
