@@ -1,3 +1,4 @@
+import { tagSentryUser } from './sentryUser';
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import prisma from './db';
@@ -35,6 +36,7 @@ export async function getCurrentUser(req: NextRequest): Promise<AuthUser | null>
     select: { id: true, username: true, role: true, plan: true, planExpiresAt: true, trialEndsAt: true },
   });
   if (!dbUser) return null;
+  tagSentryUser(dbUser.id);
   return {
     userId: dbUser.id,
     username: dbUser.username,
