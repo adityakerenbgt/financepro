@@ -16,6 +16,7 @@
     "test:bot": "tsx --env-file=.env --env-file=.env.local --test --test-concurrency=1 tests/bot/*.test.ts",
     "test:unit": "tsx --test lib/*.test.ts",
     "storage:setup": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/setup-storage.ts",
+    "telegram:poll": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/telegram-poll.ts",
     "telegram:webhook": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/set-telegram-webhook.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate && node scripts/copy-tesseract.js"

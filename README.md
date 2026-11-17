@@ -38,6 +38,7 @@ Variabel lain bersifat opsional di lokal (email dilewati, rate limit pakai memor
 | `npm run test:api` | Skenario integrasi API (butuh `npm run dev` berjalan; memakai DB di `.env`). Uji Scan Nota dengan Gemini tiruan: lihat `tests/api/receipt.test.ts` |
 | `npm run db:push` · `db:seed` · `db:studio` | Skema, seed admin, Prisma Studio |
 | `npm run storage:setup` | Membuat bucket privat bukti pembayaran (Supabase Storage) |
+| `npm run telegram:poll` | Menjalankan bot Telegram lokal (long polling, tanpa URL publik) untuk uji |
 | `npm run telegram:webhook -- https://domain` | Mendaftarkan webhook Telegram (setelah deploy) |
 
 ## Dokumentasi
