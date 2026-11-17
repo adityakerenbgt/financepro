@@ -113,6 +113,39 @@ export async function getDebtSummaries(userId: string): Promise<DebtSummary[]> {
   const debts = await prisma.debt.findMany({ where: { userId }, orderBy: { debtName: 'asc' } });
 
   const summaries: DebtSummary[] = [];
+  if (debts.length === 0) return summaries;
+
+  // Kueri dikumpulkan (bukan per utang) supaya jumlah query tetap konstan berapa pun jumlah utang (T-DEBT-9).
+  const piutangNames = debts.filter(d => d.isPiutang).map(d => d.debtName);
+  const revolvingNames = debts.filter(d => !d.isPiutang && d.debtType === 'Revolving').map(d => d.debtName);
+  const needsPayments = debts.some(d => !d.isPiutang);
+
+  const [piutangCats, revolvingAccounts, paymentTxns] = await Promise.all([
+    piutangNames.length ? prisma.category.findMany({ where: { userId, name: { in: piutangNames } }, select: { id: true, name: true } }) : Promise.resolve([]),
+    revolvingNames.length ? prisma.account.findMany({ where: { userId, name: { in: revolvingNames } }, select: { id: true, name: true } }) : Promise.resolve([]),
+    needsPayments
+      ? prisma.transaction.findMany({
+          where: { userId, type: 'Pengeluaran', category: { name: { in: ['Cicilan', 'Pembayaran Utang'] } } },
+          select: { description: true, amount: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const [receivedByCat, spentByAccount] = await Promise.all([
+    piutangCats.length
+      ? prisma.transaction.groupBy({ by: ['categoryId'], where: { userId, type: 'Pemasukan', categoryId: { in: piutangCats.map(c => c.id) } }, _sum: { amount: true } })
+      : Promise.resolve([]),
+    revolvingAccounts.length
+      ? prisma.transaction.groupBy({ by: ['accountId'], where: { userId, type: 'Pengeluaran', accountId: { in: revolvingAccounts.map(a => a.id) } }, _sum: { amount: true } })
+      : Promise.resolve([]),
+  ]);
+
+  const catIdByName = new Map(piutangCats.map(c => [c.name, c.id]));
+  const receivedByCatId = new Map(receivedByCat.map(r => [r.categoryId, r._sum.amount || 0]));
+  const accIdByName = new Map(revolvingAccounts.map(a => [a.name, a.id]));
+  const spentByAccId = new Map(spentByAccount.map(r => [r.accountId, r._sum.amount || 0]));
+  // Pembayaran dicocokkan lewat "description mengandung nama utang" (sama seperti sebelumnya, peka huruf besar/kecil).
+  const paidFor = (name: string) => paymentTxns.reduce((sum, t) => (t.description.includes(name) ? sum + t.amount : sum), 0);
 
   for (const debt of debts) {
     let totalSpent = 0;
@@ -120,26 +153,14 @@ export async function getDebtSummaries(userId: string): Promise<DebtSummary[]> {
 
     if (debt.isPiutang) {
       totalSpent = debt.limitOrPrincipal;
-      const receivedAgg = await prisma.transaction.aggregate({
-        where: { userId, type: 'Pemasukan', category: { name: debt.debtName } },
-        _sum: { amount: true },
-      });
-      totalPaid = receivedAgg._sum.amount || 0;
+      const catId = catIdByName.get(debt.debtName);
+      totalPaid = catId ? receivedByCatId.get(catId) || 0 : 0;
     } else if (debt.debtType === 'Revolving') {
-      const account = await prisma.account.findUnique({ where: { userId_name: { userId, name: debt.debtName } } });
-      if (account) {
-        const spentAgg = await prisma.transaction.aggregate({ where: { userId, accountId: account.id, type: 'Pengeluaran' }, _sum: { amount: true } });
-        totalSpent = spentAgg._sum.amount || 0;
-      }
-      const paidTxns = await prisma.transaction.findMany({
-        where: { userId, type: 'Pengeluaran', description: { contains: debt.debtName }, category: { name: { in: ['Cicilan', 'Pembayaran Utang'] } } },
-      });
-      totalPaid = paidTxns.reduce((s, t) => s + t.amount, 0);
+      const accId = accIdByName.get(debt.debtName);
+      if (accId) totalSpent = spentByAccId.get(accId) || 0;
+      totalPaid = paidFor(debt.debtName);
     } else {
-      const paidTxns = await prisma.transaction.findMany({
-        where: { userId, type: 'Pengeluaran', description: { contains: debt.debtName }, category: { name: { in: ['Cicilan', 'Pembayaran Utang'] } } },
-      });
-      totalPaid = paidTxns.reduce((s, t) => s + t.amount, 0);
+      totalPaid = paidFor(debt.debtName);
       totalSpent = debt.limitOrPrincipal;
     }
 
@@ -165,12 +186,17 @@ export async function getAssetSummaries(userId: string): Promise<AssetSummary[]>
   const assets = await prisma.asset.findMany({ where: { userId }, orderBy: { instrumentName: 'asc' } });
 
   const summaries: AssetSummary[] = [];
+  if (assets.length === 0) return summaries;
+
+  const flows = await prisma.savingsInvestment.groupBy({
+    by: ['instrumentName', 'transactionType'],
+    where: { userId, instrumentName: { in: assets.map(a => a.instrumentName) }, transactionType: { in: ['Buy', 'Sell'] } },
+    _sum: { nominal: true },
+  });
+  const flow = (name: string, type: 'Buy' | 'Sell') => flows.find(f => f.instrumentName === name && f.transactionType === type)?._sum.nominal || 0;
 
   for (const asset of assets) {
-    const buys = await prisma.savingsInvestment.aggregate({ where: { userId, instrumentName: asset.instrumentName, transactionType: 'Buy' }, _sum: { nominal: true } });
-    const sells = await prisma.savingsInvestment.aggregate({ where: { userId, instrumentName: asset.instrumentName, transactionType: 'Sell' }, _sum: { nominal: true } });
-
-    const totalCapital = asset.initialCapital + (buys._sum.nominal || 0) - (sells._sum.nominal || 0);
+    const totalCapital = asset.initialCapital + flow(asset.instrumentName, 'Buy') - flow(asset.instrumentName, 'Sell');
     const profitLoss = asset.currentValue - totalCapital;
     const returnPct = totalCapital > 0 ? (profitLoss / totalCapital) * 100 : 0;
 
@@ -191,14 +217,17 @@ export async function getBudgetSummaries(userId: string, month?: string): Promis
   const budgets = await prisma.budget.findMany({ where, include: { category: true }, orderBy: { category: { name: 'asc' } } });
 
   const summaries: BudgetSummary[] = [];
+  if (budgets.length === 0) return summaries;
+
+  const spent = await prisma.transaction.groupBy({
+    by: ['month', 'categoryId'],
+    where: { userId, type: 'Pengeluaran', month: { in: [...new Set(budgets.map(b => b.month))] }, categoryId: { in: [...new Set(budgets.map(b => b.categoryId))] } },
+    _sum: { amount: true },
+  });
+  const spentBy = new Map(spent.map(r => [`${r.month}|${r.categoryId}`, r._sum.amount || 0]));
 
   for (const budget of budgets) {
-    const txns = await prisma.transaction.aggregate({
-      where: { userId, month: budget.month, categoryId: budget.categoryId, type: 'Pengeluaran' },
-      _sum: { amount: true },
-    });
-
-    const realisation = txns._sum.amount || 0;
+    const realisation = spentBy.get(`${budget.month}|${budget.categoryId}`) || 0;
     const percentage = budget.amount > 0 ? (realisation / budget.amount) * 100 : 0;
 
     summaries.push({ id: budget.id, category: budget.category.name, month: budget.month, budgetAmount: budget.amount, realisation, difference: budget.amount - realisation, status: getBudgetStatus(percentage), percentage });
@@ -215,14 +244,17 @@ export async function getGoalSummaries(userId: string): Promise<GoalSummary[]> {
   const goals = await prisma.goal.findMany({ where: { userId }, orderBy: { goalName: 'asc' } });
 
   const summaries: GoalSummary[] = [];
+  if (goals.length === 0) return summaries;
+
+  const acc = await prisma.savingsInvestment.groupBy({
+    by: ['instrumentName'],
+    where: { userId, transactionType: 'Goals', instrumentName: { in: goals.map(g => g.goalName) } },
+    _sum: { nominal: true },
+  });
+  const accBy = new Map(acc.map(r => [r.instrumentName, r._sum.nominal || 0]));
 
   for (const goal of goals) {
-    const accumulated = await prisma.savingsInvestment.aggregate({
-      where: { userId, transactionType: 'Goals', instrumentName: goal.goalName },
-      _sum: { nominal: true },
-    });
-
-    const accAmount = accumulated._sum.nominal || 0;
+    const accAmount = accBy.get(goal.goalName) || 0;
     const progress = goal.targetAmount > 0 ? (accAmount / goal.targetAmount) * 100 : 0;
     const status = getGoalStatus(progress, goal.targetDate);
 
